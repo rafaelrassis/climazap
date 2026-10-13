@@ -24,3 +24,10 @@ export async function resetWaTemplate(): Promise<ActionResult> {
   revalidatePath("/ajustes");
   return { ok: true, data: undefined };
 }
+
+export async function saveEmailDigest(enabled: boolean): Promise<ActionResult> {
+  const userId = await requireUserId();
+  await db.user.update({ where: { id: userId }, data: { emailDigest: enabled === true } });
+  revalidatePath("/ajustes");
+  return { ok: true, data: undefined };
+}

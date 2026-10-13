@@ -24,6 +24,7 @@ model User {
   phone        String?
   companyName  String?
   waTemplate   String?
+  emailDigest  Boolean  @default(true)
   quoteSeq     Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

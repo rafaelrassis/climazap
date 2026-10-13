@@ -1,56 +1,94 @@
 import { db } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
+import { formatBRL } from "@/lib/money";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_LINES = 10;
 const fmtMonth = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "America/Sao_Paulo" });
 
-// Um e-mail por técnico com os lembretes de manutenção vencidos e não concluídos.
-export async function sendDueReminderEmails(now = new Date()): Promise<{ users: number; sent: number }> {
-  const due = await db.quote.findMany({
-    where: { reminderAt: { lte: now }, reminderDoneAt: null, status: "APPROVED" },
-    orderBy: { reminderAt: "asc" },
+type Section = { title: string; lines: string[]; extra: number };
+
+function section(title: string, all: string[]): Section | null {
+  return all.length ? { title, lines: all.slice(0, MAX_LINES), extra: Math.max(all.length - MAX_LINES, 0) } : null;
+}
+
+// Resumo semanal por técnico: lembretes de manutenção vencidos + orçamentos sem resposta há 2+ dias.
+// Respeita User.emailDigest (descadastro em /ajustes). Sem nada a mostrar, não envia.
+export async function sendWeeklyDigest(now = new Date()): Promise<{ users: number; sent: number }> {
+  const staleSince = new Date(now.getTime() - 2 * DAY_MS);
+  const users = await db.user.findMany({
+    where: {
+      emailDigest: true,
+      quotes: {
+        some: {
+          OR: [
+            { status: "APPROVED", reminderAt: { lte: now }, reminderDoneAt: null },
+            { status: "SENT", sentAt: { lte: staleSince }, validUntil: { gt: now } },
+          ],
+        },
+      },
+    },
     select: {
-      customerName: true,
-      respondedAt: true,
-      user: { select: { id: true, email: true, name: true } },
+      email: true,
+      quotes: {
+        where: {
+          OR: [
+            { status: "APPROVED", reminderAt: { lte: now }, reminderDoneAt: null },
+            { status: "SENT", sentAt: { lte: staleSince }, validUntil: { gt: now } },
+          ],
+        },
+        orderBy: { createdAt: "asc" },
+        select: { status: true, customerName: true, number: true, totalCents: true, respondedAt: true },
+      },
     },
   });
-
-  const byUser = new Map<string, { email: string; name: string; items: typeof due }>();
-  for (const q of due) {
-    const entry = byUser.get(q.user.id) ?? { email: q.user.email, name: q.user.name, items: [] };
-    entry.items.push(q);
-    byUser.set(q.user.id, entry);
-  }
 
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
   let sent = 0;
 
-  for (const { email, items } of Array.from(byUser.values())) {
-    const lines = items.slice(0, 10).map((i) => {
-      const when = i.respondedAt ? ` (serviço de ${fmtMonth.format(i.respondedAt)})` : "";
-      return `${i.customerName}${when}`;
-    });
-    const extra = items.length > 10 ? `e mais ${items.length - 10}` : "";
-    const subject =
-      items.length === 1 ? "1 cliente para chamar para manutenção" : `${items.length} clientes para chamar para manutenção`;
+  for (const u of users) {
+    const maintenance = u.quotes
+      .filter((q) => q.status === "APPROVED")
+      .map((q) => `${q.customerName}${q.respondedAt ? ` (serviço de ${fmtMonth.format(q.respondedAt)})` : ""}`);
+    const waiting = u.quotes
+      .filter((q) => q.status === "SENT")
+      .map((q) => `#${q.number} · ${q.customerName} · ${formatBRL(q.totalCents)}`);
+
+    const sections = [
+      section("Hora da manutenção", maintenance),
+      section("Orçamentos sem resposta há mais de 2 dias", waiting),
+    ].filter((s): s is Section => s !== null);
+    if (!sections.length) continue;
+
+    const total = maintenance.length + waiting.length;
+    const subject = total === 1 ? "Resumo da semana: 1 cliente para chamar" : `Resumo da semana: ${total} clientes para chamar`;
 
     const text = [
-      "Estes clientes estão na hora da manutenção:",
-      ...lines.map((l) => `- ${l}`),
-      extra,
+      ...sections.flatMap((s) => [
+        `${s.title}:`,
+        ...s.lines.map((l) => `- ${l}`),
+        s.extra ? `e mais ${s.extra}` : "",
+        "",
+      ]),
       `Chame pelo WhatsApp: ${base}/inicio`,
+      `Para parar de receber este resumo: ${base}/ajustes`,
     ]
-      .filter(Boolean)
+      .filter((l, i, a) => l !== "" || a[i - 1] !== "")
       .join("\n");
-    const html =
-      "<p>Estes clientes estão na hora da manutenção:</p><ul>" +
-      lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("") +
-      "</ul>" +
-      (extra ? `<p>${escapeHtml(extra)}</p>` : "") +
-      `<p><a href="${escapeHtml(base)}/inicio">Abrir o FechouClima</a></p>`;
 
-    if (await sendEmail({ to: email, subject, html, text })) sent++;
+    const html =
+      sections
+        .map(
+          (s) =>
+            `<p><strong>${escapeHtml(s.title)}</strong></p><ul>${s.lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` +
+            (s.extra ? `<p>e mais ${s.extra}</p>` : ""),
+        )
+        .join("") +
+      `<p><a href="${escapeHtml(base)}/inicio">Abrir o FechouClima</a></p>` +
+      `<p style="color:#64748b;font-size:12px">Para parar de receber este resumo, desative em <a href="${escapeHtml(base)}/ajustes">Ajustes</a>.</p>`;
+
+    if (await sendEmail({ to: u.email, subject, html, text })) sent++;
   }
 
-  return { users: byUser.size, sent };
+  return { users: users.length, sent };
 }
