@@ -6,6 +6,7 @@ import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
 import { requireUserId } from "@/lib/session";
 import { buildWhatsAppUrl, normalizeBrPhone } from "@/lib/whatsapp";
+import { CustomerActions } from "@/components/customers/customer-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +57,8 @@ export default async function ClienteDetailPage({ params }: { params: Promise<{ 
           </Button>
         </div>
       </div>
+
+      <CustomerActions id={customer.id} name={customer.name} address={customer.address ?? ""} />
 
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Orçamentos</h2>

@@ -110,3 +110,30 @@ test("técnico não acessa orçamento nem cliente de outro técnico", async ({ p
   await page.goto(`/orcamentos/novo?cliente=${a.customerId}`);
   await expect(page.getByLabel("Nome do cliente")).toHaveValue("");
 });
+
+test("clientes: editar, filtrar dormentes e excluir mantendo o orçamento", async ({ page }) => {
+  const t = await seedTechnician("cadm", "APPROVED");
+  await prisma.customer.update({ where: { id: t.customerId }, data: { createdAt: new Date(Date.now() - 400 * 86_400_000) } });
+  await prisma.quote.update({ where: { id: t.quoteId }, data: { createdAt: new Date(Date.now() - 300 * 86_400_000) } });
+  await login(page, t.email);
+
+  // dormente: aparece no filtro e tem botão de reabordar
+  await page.goto("/clientes?filtro=dormentes");
+  await expect(page.getByText("Dormente")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Reabordar" })).toHaveAttribute("href", /^https:\/\/wa\.me\/5511977776666\?text=/);
+
+  await page.goto(`/clientes/${t.customerId}`);
+  await page.getByRole("button", { name: "Editar cliente" }).click();
+  await page.getByLabel("Nome", { exact: true }).fill("Nome Corrigido");
+  await page.getByRole("button", { name: "Salvar" }).click();
+  await expect(page.getByRole("heading", { name: "Nome Corrigido" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Excluir cliente" }).click();
+  await page.getByRole("button", { name: "Sim, excluir" }).click();
+  await expect(page).toHaveURL(/\/clientes$/);
+  await expect(page.getByText("Nome Corrigido")).toHaveCount(0);
+
+  // o orçamento continua
+  await page.goto(`/orcamentos/${t.quoteId}`);
+  await expect(page.getByRole("heading", { name: "Orçamento #1" })).toBeVisible();
+});
