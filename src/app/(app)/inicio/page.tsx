@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -53,13 +54,13 @@ export default async function InicioPage() {
       _count: true,
       _sum: { totalCents: true },
     }),
-    db.quote.count({ where: { userId, sentAt: { gte: since30 }, status: { in: ["APPROVED", "REJECTED", "EXPIRED", "SENT"] } } }),
+    db.quote.count({ where: { userId, sentAt: { gte: since30 }, status: { in: ["APPROVED", "REJECTED", "EXPIRED"] } } }),
     db.quote.count({ where: { userId, sentAt: { gte: since30 }, status: "APPROVED" } }),
     db.quote.findMany({
       where: { userId, status: "SENT", sentAt: { lte: staleSince } },
       orderBy: { sentAt: "asc" },
       take: 5,
-      select: { id: true, number: true, customerName: true, totalCents: true, sentAt: true },
+      select: { id: true, number: true, customerName: true, customerPhone: true, totalCents: true },
     }),
   ]);
 
@@ -96,7 +97,7 @@ export default async function InicioPage() {
         <Stat
           label="Taxa de aprovação"
           value={rate === null ? "—" : `${rate}%`}
-          hint="enviados nos últimos 30 dias"
+          hint="dos respondidos em 30 dias"
           href="/orcamentos"
         />
       </div>
@@ -105,16 +106,26 @@ export default async function InicioPage() {
         <section className="space-y-2">
           <h2 className="text-sm font-medium text-muted-foreground">Sem resposta há mais de 2 dias</h2>
           {stale.map((q) => (
-            <Link key={q.id} href={`/orcamentos/${q.id}`} className="block">
-              <Card>
-                <CardContent className="flex min-h-11 items-center justify-between gap-3 p-3">
-                  <p className="min-w-0 truncate text-sm">
+            <Card key={q.id}>
+              <CardContent className="flex items-center justify-between gap-2 p-3">
+                <Link href={`/orcamentos/${q.id}`} className="flex min-h-11 min-w-0 flex-1 flex-col justify-center">
+                  <span className="truncate text-sm">
                     #{q.number} · {q.customerName}
-                  </p>
-                  <p className="shrink-0 text-sm font-semibold">{formatBRL(q.totalCents)}</p>
-                </CardContent>
-              </Card>
-            </Link>
+                  </span>
+                  <span className="text-xs font-semibold">{formatBRL(q.totalCents)}</span>
+                </Link>
+                <Button asChild variant="outline" className="h-11 shrink-0">
+                  <a
+                    href={buildWhatsAppUrl(
+                      q.customerPhone,
+                      `Oi, ${q.customerName}! Conseguiu ver o orçamento #${q.number}? Qualquer dúvida é só falar.`,
+                    )}
+                  >
+                    Cobrar resposta
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
           ))}
         </section>
       )}

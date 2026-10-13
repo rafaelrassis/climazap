@@ -50,7 +50,6 @@ Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tare
 Pronto: schema, seed (9 serviços padrão + usuário demo só fora de produção), actions de services/quotes (criar, enviar via WhatsApp, aprovar por publicId), Auth.js, login, listagem, `/orcamentos/novo`, página pública com modal de confirmação.
 
 ## Roadmap (nesta ordem)
-14. **PWA**: manifest + ícones + instalável.
 
 ## Riscos conhecidos
 - `next-auth@beta` (v5): fixar versão exata no `package.json`.
