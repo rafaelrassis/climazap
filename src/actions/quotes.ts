@@ -251,6 +251,7 @@ export async function approveQuoteByPublicId(publicId: string): Promise<ActionRe
 
   revalidatePath(`/o/${publicId}`);
   revalidatePath("/orcamentos");
+  await notifyQuoteResponse(publicId, "APPROVED");
   return { ok: true, data: undefined };
 }
 

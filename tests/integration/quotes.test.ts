@@ -244,3 +244,33 @@ describe("lembrete de manutenção", () => {
     expect(row).toMatchObject({ reminderAt: null, reminderDoneAt: null });
   });
 });
+
+describe("aviso ao técnico dispara na resposta do cliente", () => {
+  it("aprovar avisa uma vez com APPROVED; repetir o clique não avisa de novo", async () => {
+    const { notifyQuoteResponse } = await import("@/lib/notify");
+    const { vi } = await import("vitest");
+    vi.mocked(notifyQuoteResponse).mockClear();
+    loginAs((await makeUser()).id);
+    const q = await newQuote();
+    await send(q.id);
+    await approveQuoteByPublicId(q.publicId);
+    await approveQuoteByPublicId(q.publicId);
+    expect(vi.mocked(notifyQuoteResponse).mock.calls).toEqual([[q.publicId, "APPROVED"]]);
+  });
+
+  it("recusar avisa com REJECTED; tentativa inválida (rascunho) não avisa", async () => {
+    const { notifyQuoteResponse } = await import("@/lib/notify");
+    const { vi } = await import("vitest");
+    vi.mocked(notifyQuoteResponse).mockClear();
+    loginAs((await makeUser()).id);
+    const draft = await newQuote();
+    await approveQuoteByPublicId(draft.publicId);
+    await rejectQuoteByPublicId(draft.publicId, "x");
+    expect(vi.mocked(notifyQuoteResponse)).not.toHaveBeenCalled();
+
+    const q = await newQuote({ customerPhone: "11988887777" });
+    await send(q.id);
+    await rejectQuoteByPublicId(q.publicId, "caro");
+    expect(vi.mocked(notifyQuoteResponse).mock.calls).toEqual([[q.publicId, "REJECTED"]]);
+  });
+});
