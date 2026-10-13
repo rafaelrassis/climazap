@@ -41,7 +41,7 @@ npx prisma migrate dev --name <nome>
 npx prisma db seed
 npm run lint && npx tsc --noEmit
 npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, padrão postgresql://postgres:postgres@localhost:5432/climazap_test). O banco precisa ter "test" no nome: o setup apaga o schema.
-npm run test:e2e        # 28 testes Playwright (fluxos, layout a 320-430px, acessibilidade axe, PWA) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
+npm run test:e2e        # 35 testes Playwright (fluxos, formulário, segurança/XSS, layout a 320-430px, acessibilidade axe, PWA, LGPD) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
 ```
 
 ## Deploy
