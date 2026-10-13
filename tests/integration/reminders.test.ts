@@ -4,10 +4,10 @@ import { approveQuoteByPublicId, completeMaintenanceReminder, createQuote, setMa
 import { sendWeeklyDigest } from "@/lib/reminders";
 import { loginAs, makeUser, quoteInput, resetDb } from "../helpers/db";
 
-const sent: { to: string; subject: string; html: string }[] = [];
+const sent: { to: string; subject: string; html: string; headers?: Record<string, string> }[] = [];
 vi.mock("@/lib/email", async (orig) => ({
   ...(await orig<typeof import("@/lib/email")>()),
-  sendEmail: async (m: { to: string; subject: string; html: string }) => {
+  sendEmail: async (m: { to: string; subject: string; html: string; headers?: Record<string, string> }) => {
     sent.push(m);
     return true;
   },
@@ -96,7 +96,9 @@ describe("resumo semanal: orçamentos sem resposta e descadastro", () => {
     expect(mail.html).not.toContain("Enviado Hoje");
     expect(mail.html).not.toContain("Vencido");
     expect(mail.html).toContain("Orçamentos sem resposta");
-    expect(mail.html).toContain("/ajustes");
+    expect(mail.html).toContain("/descadastro?u=");
+    expect(mail.headers?.["List-Unsubscribe"]).toMatch(/^<http:\/\/localhost:3000\/api\/descadastro\?u=.+&t=[0-9a-f]{64}>$/);
+    expect(mail.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
   });
 
   it("não envia para quem desativou o resumo", async () => {

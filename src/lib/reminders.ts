@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { formatBRL } from "@/lib/money";
+import { unsubscribePostUrl, unsubscribeUrl } from "@/lib/unsubscribe";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_LINES = 10;
@@ -29,6 +30,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
       },
     },
     select: {
+      id: true,
       email: true,
       quotes: {
         where: {
@@ -71,7 +73,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
         "",
       ]),
       `Chame pelo WhatsApp: ${base}/inicio`,
-      `Para parar de receber este resumo: ${base}/ajustes`,
+      `Para parar de receber este resumo: ${unsubscribeUrl(u.id, base)}`,
     ]
       .filter((l, i, a) => l !== "" || a[i - 1] !== "")
       .join("\n");
@@ -85,9 +87,13 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
         )
         .join("") +
       `<p><a href="${escapeHtml(base)}/inicio">Abrir o FechouClima</a></p>` +
-      `<p style="color:#64748b;font-size:12px">Para parar de receber este resumo, desative em <a href="${escapeHtml(base)}/ajustes">Ajustes</a>.</p>`;
+      `<p style="color:#64748b;font-size:12px">Para parar de receber este resumo, <a href="${escapeHtml(unsubscribeUrl(u.id, base))}">cancele aqui</a> (ou desative em Ajustes).</p>`;
 
-    if (await sendEmail({ to: u.email, subject, html, text })) sent++;
+    const headers = {
+      "List-Unsubscribe": `<${unsubscribePostUrl(u.id, base)}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+    if (await sendEmail({ to: u.email, subject, html, text, headers })) sent++;
   }
 
   return { users: users.length, sent };
