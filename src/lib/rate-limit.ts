@@ -37,6 +37,6 @@ export async function isRateLimited(key: string, limit: number): Promise<boolean
 export const LIMITS = {
   loginEmail: { limit: 8, windowSec: 15 * 60 },
   loginIp: { limit: 30, windowSec: 15 * 60 },
-  register: { limit: 5, windowSec: 60 * 60 },
+  register: { limit: 15, windowSec: 60 * 60 },
   publicAction: { limit: 20, windowSec: 10 * 60 },
 } as const;
