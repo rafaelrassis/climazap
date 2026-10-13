@@ -139,3 +139,51 @@ export async function approveQuoteByPublicId(publicId: string): Promise<ActionRe
   revalidatePath("/orcamentos");
   return { ok: true, data: undefined };
 }
+
+// Copia o orçamento como novo rascunho (snapshot dos itens, sem recalcular pelo catálogo)
+export async function duplicateQuote(quoteId: string): Promise<ActionResult<{ id: string }>> {
+  const userId = await requireUserId();
+
+  const src = await db.quote.findFirst({
+    where: { id: quoteId, userId },
+    include: { items: { orderBy: { position: "asc" } } },
+  });
+  if (!src) return { ok: false, error: "Orçamento não encontrado" };
+
+  const copy = await db.$transaction(async (tx) => {
+    const { quoteSeq } = await tx.user.update({
+      where: { id: userId },
+      data: { quoteSeq: { increment: 1 } },
+      select: { quoteSeq: true },
+    });
+    return tx.quote.create({
+      data: {
+        userId,
+        number: quoteSeq,
+        customerName: src.customerName,
+        customerPhone: src.customerPhone,
+        customerAddress: src.customerAddress,
+        title: src.title,
+        notes: src.notes,
+        discountCents: src.discountCents,
+        totalCents: src.totalCents,
+        validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        items: {
+          create: src.items.map((i) => ({
+            serviceId: i.serviceId,
+            description: i.description,
+            unit: i.unit,
+            quantity: i.quantity,
+            unitPriceCents: i.unitPriceCents,
+            totalCents: i.totalCents,
+            position: i.position,
+          })),
+        },
+      },
+      select: { id: true },
+    });
+  });
+
+  revalidatePath("/orcamentos");
+  return { ok: true, data: copy };
+}

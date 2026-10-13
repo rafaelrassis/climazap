@@ -30,7 +30,7 @@ export default async function OrcamentosPage() {
       )}
 
       {quotes.map((q) => (
-        <Link key={q.id} href={`/o/${q.publicId}`} className="block">
+        <Link key={q.id} href={`/orcamentos/${q.id}`} className="block">
           <Card>
             <CardContent className="flex items-center justify-between gap-3 p-3">
               <div className="min-w-0">
