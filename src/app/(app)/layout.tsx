@@ -12,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-dvh bg-muted/30">
       <header className="sticky top-0 z-20 border-b bg-background">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
-          <Link href="/inicio" className="font-semibold">
+          <Link href="/inicio" className="inline-flex min-h-11 items-center font-semibold">
             FechouClima
           </Link>
           <LogoutButton />

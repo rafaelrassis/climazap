@@ -344,7 +344,7 @@ export function QuoteForm({
                   <Input
                     aria-label="Descrição do item"
                     placeholder="Descrição do item"
-                    className="h-11 text-base"
+                    className="h-11 min-w-0 flex-1 text-base"
                     value={l.description}
                     onChange={(e) => updateLine(l.key, { description: e.target.value })}
                   />
@@ -371,7 +371,7 @@ export function QuoteForm({
                     <input
                       aria-label="Quantidade"
                       inputMode="decimal"
-                      className="w-full min-w-0 bg-transparent text-center text-base outline-none"
+                      className="h-11 w-full min-w-0 bg-transparent text-center text-base outline-none"
                       value={l.quantity}
                       onChange={(e) => updateLine(l.key, { quantity: e.target.value.replace(/[^\d,.]/g, "") })}
                     />
@@ -433,12 +433,12 @@ export function QuoteForm({
             </span>
             <span className="text-xl font-bold">{formatBRL(total)}</span>
           </div>
-          <div className="grid grid-cols-[1fr_1.4fr] gap-2">
-            <Button type="button" variant="outline" className="h-12" disabled={pending} onClick={() => submit(false)}>
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2">
+            <Button type="button" variant="outline" className="h-12 px-2 text-sm min-[360px]:text-base" disabled={pending} onClick={() => submit(false)}>
               Salvar rascunho
             </Button>
-            <Button type="button" className="h-12" disabled={pending} onClick={() => submit(true)}>
-              <MessageCircle className="mr-2 size-4" />
+            <Button type="button" className="h-12 px-2 text-sm min-[360px]:text-base" disabled={pending} onClick={() => submit(true)}>
+              <MessageCircle className="mr-2 size-4 max-[359px]:hidden" />
               {pending ? "Enviando..." : "Enviar no WhatsApp"}
             </Button>
           </div>
