@@ -10,6 +10,7 @@ import type { CreateQuoteInput } from "@/lib/validations/quote";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { MoneyInput } from "@/components/money-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,7 +33,6 @@ type Line = {
   unitPriceCents: number;
 };
 
-const MAX_CENTS = 100_000_00;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const toNumber = (s: string) => {
   const n = Number(s.replace(",", "."));
@@ -45,18 +45,6 @@ function maskPhone(v: string) {
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-}
-
-function MoneyInput({ value, onChange, label }: { value: number; onChange: (cents: number) => void; label: string }) {
-  return (
-    <Input
-      aria-label={label}
-      inputMode="numeric"
-      className="h-11 text-base"
-      value={formatBRL(value)}
-      onChange={(e) => onChange(Math.min(Number(e.target.value.replace(/\D/g, "")) || 0, MAX_CENTS))}
-    />
-  );
 }
 
 export function QuoteForm({ services }: { services: ServiceOption[] }) {

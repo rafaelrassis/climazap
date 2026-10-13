@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
@@ -35,6 +35,8 @@ model User {
 model Service {
   id          String   @id @default(cuid())
   userId      String?
+  // preenchido = personalização do técnico sobre um serviço padrão (o padrão nunca é alterado)
+  overridesId String?
   name        String
   description String?
   unit        String   @default("un")
@@ -43,9 +45,12 @@ model Service {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user  User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items QuoteItem[]
+  user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  overrides    Service?    @relation("ServiceOverride", fields: [overridesId], references: [id], onDelete: Cascade)
+  overriddenBy Service[]   @relation("ServiceOverride")
+  items        QuoteItem[]
 
+  @@unique([userId, overridesId])
   @@index([userId, isActive])
 }
 

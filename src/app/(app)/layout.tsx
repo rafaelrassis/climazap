@@ -15,11 +15,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/orcamentos" className="font-semibold">
             FechouClima
           </Link>
-          <form action={logoutAction}>
-            <Button variant="ghost" size="sm" type="submit">
-              Sair
-            </Button>
-          </form>
+          <nav className="flex items-center gap-1">
+            <Link href="/servicos" className="inline-flex min-h-11 items-center px-3 text-sm">
+              Serviços
+            </Link>
+            <form action={logoutAction}>
+              <Button variant="ghost" size="sm" type="submit" className="min-h-11">
+                Sair
+              </Button>
+            </form>
+          </nav>
         </div>
       </header>
       <main className="mx-auto max-w-lg px-4 py-4">{children}</main>

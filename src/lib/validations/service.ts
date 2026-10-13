@@ -8,3 +8,6 @@ export const createServiceSchema = z.object({
 });
 
 export type CreateServiceInput = z.input<typeof createServiceSchema>;
+
+export const updateServiceSchema = createServiceSchema.extend({ id: z.string().min(1) });
+export type UpdateServiceInput = z.input<typeof updateServiceSchema>;
