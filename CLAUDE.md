@@ -20,15 +20,15 @@ Next.js 14 (App Router) · TypeScript · Tailwind · shadcn/ui · PostgreSQL · 
 ## Estrutura
 ```
 prisma/                 schema.prisma, seed.ts
-src/auth.ts             Auth.js (credentials)
-src/auth.config.ts      config edge-safe (usada no middleware)
-src/middleware.ts       protege rotas; públicas: /login /cadastro /o/ /api/health
-src/actions/            auth.ts, services.ts, quotes.ts
-src/lib/                db, money, whatsapp, session, quote-status, validations/
-src/app/(auth)/login    login (cadastro: a fazer)
-src/app/(app)           área logada: orcamentos (servicos: a fazer)
-src/app/o/[publicId]    página pública do orçamento + aprovação com modal
-src/components/quotes   quote-form, approve-button
+src/auth.ts             Auth.js (credentials) + rate limit no authorize
+src/auth.config.ts      config edge-safe (usada no middleware); PUBLIC_PREFIXES
+src/middleware.ts       protege rotas; públicas: /login /cadastro /o/ /api/health /icons /manifest
+src/actions/            auth, services, quotes, customers, settings (só funções de ação aqui: exports de "use server" viram endpoints)
+src/lib/                db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
+src/app/(auth)          login, cadastro
+src/app/(app)           inicio (dashboard), orcamentos (lista, novo, [id], [id]/editar), servicos, ajustes
+src/app/o/[publicId]    página pública + aprovar/recusar + opengraph-image
+src/components/         bottom-nav, money-input, logout-button, quotes/, services/, settings/
 ```
 Nota: a rota pública é `/o/[publicId]` (o brief do projeto cita `/p/[token]`; manter `/o/` ou renomear em um commit só, atualizando `PUBLIC_PREFIXES` em `auth.config.ts` e a URL em `sendQuoteViaWhatsApp`).
 
@@ -47,9 +47,15 @@ Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nun
 Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tarefa: trazer opiniões/riscos curtos e propor ideias novas. Pode discordar. Avisos de segurança/perda de dados podem ser mais longos.
 
 ## Estado atual
-Pronto: schema, seed (9 serviços padrão + usuário demo só fora de produção), actions de services/quotes (criar, enviar via WhatsApp, aprovar por publicId), Auth.js, login, listagem, `/orcamentos/novo`, página pública com modal de confirmação.
+Roadmap 1-14 concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA (sem service worker), navegação inferior.
 
 ## Roadmap (nesta ordem)
+2. **Testes (Vitest)**: `prepareQuote`, rate limit, aprovação atômica, `renderWaTemplate`.
+3. **Logo do técnico** (upload) na página pública e na OG image.
+4. **Lembrete de manutenção**: ao aprovar, "avisar em 6 meses" -> link WhatsApp para reabordar.
+5. **Web push** ao técnico na aprovação (PWA).
+6. **Service worker** só se houver necessidade real de offline.
+7. **`/clientes`**: histórico, total aprovado, "novo orçamento" pré-preenchido.
 
 ## Riscos conhecidos
 - `next-auth@beta` (v5): fixar versão exata no `package.json`.

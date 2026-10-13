@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { BottomNav } from "@/components/bottom-nav";
 import { LogoutButton } from "@/components/logout-button";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -14,21 +15,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/inicio" className="font-semibold">
             FechouClima
           </Link>
-          <nav className="flex items-center gap-1">
-            <Link href="/orcamentos" className="inline-flex min-h-11 items-center px-3 text-sm">
-              Orçamentos
-            </Link>
-            <Link href="/servicos" className="inline-flex min-h-11 items-center px-3 text-sm">
-              Serviços
-            </Link>
-            <Link href="/ajustes" className="inline-flex min-h-11 items-center px-3 text-sm">
-              Ajustes
-            </Link>
-            <LogoutButton />
-          </nav>
+          <LogoutButton />
         </div>
       </header>
       <main className="mx-auto max-w-lg px-4 py-4">{children}</main>
+      <BottomNav />
     </div>
   );
 }
