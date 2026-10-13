@@ -410,7 +410,7 @@ export function QuoteForm({
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Validade</Label>
           <Select value={validDays} onValueChange={setValidDays}>
-            <SelectTrigger className="h-11 text-base">
+            <SelectTrigger aria-label="Validade do orçamento" className="h-11 text-base">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
