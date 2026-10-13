@@ -36,6 +36,10 @@ jobs:
       - run: npm ci
       - run: npx prisma validate
       - run: npx prisma generate
+      - name: Migrations aplicam e não há drift
+        run: |
+          npx prisma migrate deploy
+          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm test

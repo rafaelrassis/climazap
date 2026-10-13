@@ -42,6 +42,9 @@ npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, 
 npm run test:e2e        # Playwright (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
 ```
 
+## Deploy
+Ver `DEPLOY.md`. Migrations em `prisma/migrations` (gerar nova: `npx prisma migrate dev --name <nome>`; aplicar em produção: `npx prisma migrate deploy`). Versões de `next-auth`, `prisma` e `@prisma/client` fixadas (exatas).
+
 ## Cron
 `vercel.json`: segunda 11:00 UTC (8h BRT) chama `/api/cron/lembretes`, protegido por `CRON_SECRET` (Bearer). Rota pública no middleware, autenticada pelo segredo.
 
@@ -59,8 +62,10 @@ Roadmap 1-14 concluído: cadastro, detalhe/duplicar/editar/renovar/contrapropost
 6. **Service worker** só se houver necessidade real de offline.
 
 ## Riscos conhecidos
-- `next-auth@beta` (v5): fixar versão exata no `package.json`.
-- Prisma fixado em 6.x (7.x muda config/generator).
+- `next-auth@beta` (v5): versão fixada em 5.0.0-beta.32; atualizar com cuidado.
+- Prisma fixado em 6.19.3 (7.x muda config/generator).
+- Next 14.2.35 com avisos de DoS no `npm audit` (correção só no Next 15/16): migrar em tarefa própria.
+- Sem CSP (Next usa scripts inline; exigiria nonce). Demais cabeçalhos de segurança em `next.config.mjs`.
 - `sendQuoteViaWhatsApp` marca `SENT` antes do envio real; aceitável porque a aprovação exige `SENT`.
 - Seed nunca deve criar o usuário demo em produção.
 - `revalidate = 300` na página pública: a aprovação chama `revalidatePath`, então o status atualiza na hora.
