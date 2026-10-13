@@ -17,6 +17,7 @@
 | `NEXT_PUBLIC_APP_URL` | `https://fechouclima.com.br` |
 | `RESEND_API_KEY` | chave do Resend |
 | `EMAIL_FROM` | `FechouClima <avisos@fechouclima.com.br>` (domínio verificado no Resend: SPF + DKIM) |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | (opcional) e-mail de contato das páginas de privacidade e termos; padrão contato@fechouclima.com.br |
 | `ERROR_ALERT_EMAIL` | seu e-mail: recebe 1 alerta por tipo de erro de servidor por hora |
 | `CRON_SECRET` | `openssl rand -hex 32` |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | chave pública VAPID (`npx web-push generate-vapid-keys`) |
@@ -33,6 +34,10 @@ Adicione `fechouclima.com.br` ao projeto na Vercel e aponte o DNS como ela indic
 - Criar conta, criar orçamento, abrir o link público em aba anônima e aprovar.
 - `/ajustes` > "Avisos no celular" > Ativar (no iPhone, instale o app na tela de início antes). Aprove um orçamento em outra aba e confira a notificação.
 - Segunda-feira seguinte: logs do cron `/api/cron/lembretes` na Vercel.
+
+## Antes de divulgar
+- Revise os textos de `/privacidade` e `/termos` com um advogado (são um modelo, não parecer jurídico) e confirme o e-mail de contato.
+- Pix: o app só gera o código a partir da chave que o técnico cadastra; confira com um Pix real de R$ 0,01 antes de usar.
 
 ## Notas
 - `postinstall` roda `prisma generate`; `migrate deploy` **não** roda no build (de propósito: migration é passo consciente).

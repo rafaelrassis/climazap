@@ -29,7 +29,19 @@ test("manifest, ícones e ajustes de avisos", async ({ page, request }) => {
   await expect(page.getByText(/não permite avisos|Verificando/)).toBeVisible();
 });
 
-test("página 404 em português e sem estouro", async ({ page }) => {
+test("página 404 em português: logado e no link público", async ({ page }) => {
+  // sem login, rota desconhecida cai no login (a área do app é protegida)
+  await page.goto("/rota-que-nao-existe");
+  await expect(page).toHaveURL(/\/login/);
+
+  // link público inexistente: 404 com a página amigável
+  const pub = await page.goto("/o/00000000-0000-4000-8000-000000000000");
+  expect(pub?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Página não encontrada" })).toBeVisible();
+
+  // logado, rota desconhecida também mostra a 404 amigável
+  const t = await seedTechnician("nf", "SENT");
+  await login(page, t.email);
   const res = await page.goto("/rota-que-nao-existe");
   expect(res?.status()).toBe(404);
   await expect(page.getByRole("heading", { name: "Página não encontrada" })).toBeVisible();
