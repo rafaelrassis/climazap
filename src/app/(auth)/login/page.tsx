@@ -24,7 +24,7 @@ export default function LoginPage() {
     <main className="flex min-h-dvh items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-xl">ClimaZap</CardTitle>
+          <CardTitle className="text-xl">FechouClima</CardTitle>
           <CardDescription>Entre para criar orçamentos</CardDescription>
         </CardHeader>
         <CardContent>

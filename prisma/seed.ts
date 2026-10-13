@@ -25,11 +25,11 @@ async function main() {
   // Usuário demo: nunca em produção (senha pública)
   if (process.env.NODE_ENV !== "production") {
     await db.user.upsert({
-      where: { email: "demo@climazap.com.br" },
+      where: { email: "demo@fechouclima.com.br" },
       update: {},
       create: {
         name: "Técnico Demo",
-        email: "demo@climazap.com.br",
+        email: "demo@fechouclima.com.br",
         passwordHash: await bcrypt.hash("demo1234", 10),
         phone: "11999999999",
         companyName: "Demo Climatização",

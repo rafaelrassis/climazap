@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-20 border-b bg-background">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
           <Link href="/orcamentos" className="font-semibold">
-            ClimaZap
+            FechouClima
           </Link>
           <form action={logoutAction}>
             <Button variant="ghost" size="sm" type="submit">

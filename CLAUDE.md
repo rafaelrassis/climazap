@@ -1,6 +1,8 @@
-# ClimaZap
+# FechouClima
 
 Micro-SaaS B2B mobile-first (PWA) para técnicos de ar-condicionado e refrigeração criarem orçamentos em menos de 60s no celular e enviarem por WhatsApp. O cliente abre um link público e aprova com 1 toque, sem login.
+
+Domínio: fechouclima.com.br (repo/pacote continuam `climazap`).
 
 ## Stack
 Next.js 14 (App Router) · TypeScript · Tailwind · shadcn/ui · PostgreSQL · Prisma 6 · Auth.js v5 (credentials + bcryptjs) · Zod · npm · Ubuntu.

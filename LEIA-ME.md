@@ -1,4 +1,4 @@
-# Pacote ClimaZap: como aplicar
+# Pacote FechouClima: como aplicar
 
 Conteúdo: código completo (schema, seed, auth, actions, telas), `CLAUDE.md`, CI, `.env.example` e `setup.sh`.
 
@@ -26,7 +26,7 @@ npx prisma db seed
 npm run dev
 ```
 
-Login de teste (só em dev): `demo@climazap.com.br` / `demo1234`.
+Login de teste (só em dev): `demo@fechouclima.com.br` / `demo1234`.
 
 ## Commit e push (direto na main)
 

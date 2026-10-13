@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "ClimaZap", template: "%s | ClimaZap" },
+  title: { default: "FechouClima", template: "%s | FechouClima" },
   description: "Orçamentos de climatização em 60 segundos, direto no WhatsApp.",
 };
 
