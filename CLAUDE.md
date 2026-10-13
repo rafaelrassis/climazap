@@ -38,6 +38,7 @@ npm run dev
 npx prisma migrate dev --name <nome>
 npx prisma db seed
 npm run lint && npx tsc --noEmit
+npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, padrão postgresql://postgres:postgres@localhost:5432/climazap_test). O banco precisa ter "test" no nome: o setup apaga o schema.
 ```
 
 ## Git
@@ -50,7 +51,6 @@ Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tare
 Roadmap 1-14 concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA (sem service worker), navegação inferior.
 
 ## Roadmap (nesta ordem)
-2. **Testes (Vitest)**: `prepareQuote`, rate limit, aprovação atômica, `renderWaTemplate`.
 3. **Logo do técnico** (upload) na página pública e na OG image.
 4. **Lembrete de manutenção**: ao aprovar, "avisar em 6 meses" -> link WhatsApp para reabordar.
 5. **Web push** ao técnico na aprovação (PWA).
