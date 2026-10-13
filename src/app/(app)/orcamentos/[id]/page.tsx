@@ -5,6 +5,7 @@ import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
+import { MaintenanceReminder } from "@/components/quotes/maintenance-reminder";
 import { QuoteActions } from "@/components/quotes/quote-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -77,6 +78,14 @@ export default async function QuoteDetailPage({ params }: { params: { id: string
       )}
 
       {q.notes && <p className="whitespace-pre-line text-sm text-muted-foreground">{q.notes}</p>}
+
+      {q.status === "APPROVED" && (
+        <MaintenanceReminder
+          quoteId={q.id}
+          reminderLabel={q.reminderAt ? fmtDate.format(q.reminderAt) : null}
+          done={!!q.reminderDoneAt}
+        />
+      )}
 
       <QuoteActions quoteId={q.id} publicId={q.publicId} status={q.status} customerPhone={q.customerPhone} paid={!!q.paidAt} />
     </div>

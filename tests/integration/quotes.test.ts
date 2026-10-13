@@ -6,6 +6,8 @@ import {
   duplicateQuote,
   rejectQuoteByPublicId,
   renewQuote,
+  completeMaintenanceReminder,
+  setMaintenanceReminder,
   setQuotePaid,
   updateQuote,
 } from "@/actions/quotes";
@@ -201,5 +203,44 @@ describe("edição, duplicação, renovação e pagamento", () => {
     await approveQuoteByPublicId(q.publicId);
     expect((await setQuotePaid(q.id, true)).ok).toBe(true);
     expect((await db.quote.findUniqueOrThrow({ where: { id: q.id } })).paidAt).not.toBeNull();
+  });
+});
+
+describe("lembrete de manutenção", () => {
+  async function approved() {
+    const q = await newQuote();
+    await send(q.id);
+    await approveQuoteByPublicId(q.publicId);
+    return q;
+  }
+
+  it("só em orçamento aprovado, com prazo válido", async () => {
+    loginAs((await makeUser()).id);
+    const draft = await newQuote();
+    expect((await setMaintenanceReminder(draft.id, 6)).ok).toBe(false);
+    const q = await approved();
+    expect((await setMaintenanceReminder(q.id, 5)).ok).toBe(false);
+    expect((await setMaintenanceReminder(q.id, 6)).ok).toBe(true);
+    const row = await db.quote.findUniqueOrThrow({ where: { id: q.id } });
+    const months = (row.reminderAt!.getTime() - Date.now()) / (30 * 86_400_000);
+    expect(months).toBeGreaterThan(5.5);
+    expect(months).toBeLessThan(6.5);
+  });
+
+  it("concluir e remover; isolamento entre técnicos", async () => {
+    const a = await makeUser();
+    const b = await makeUser();
+    loginAs(a.id);
+    const q = await approved();
+    await setMaintenanceReminder(q.id, 3);
+    loginAs(b.id);
+    expect((await completeMaintenanceReminder(q.id)).ok).toBe(false);
+    expect((await setMaintenanceReminder(q.id, null)).ok).toBe(false);
+    loginAs(a.id);
+    expect((await completeMaintenanceReminder(q.id)).ok).toBe(true);
+    expect((await db.quote.findUniqueOrThrow({ where: { id: q.id } })).reminderDoneAt).not.toBeNull();
+    expect((await setMaintenanceReminder(q.id, null)).ok).toBe(true);
+    const row = await db.quote.findUniqueOrThrow({ where: { id: q.id } });
+    expect(row).toMatchObject({ reminderAt: null, reminderDoneAt: null });
   });
 });

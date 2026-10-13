@@ -53,7 +53,6 @@ Roadmap 1-14 concluído: cadastro, detalhe/duplicar/editar/renovar/contrapropost
 
 ## Roadmap (nesta ordem)
 3. **Logo do técnico** (upload) na página pública e na OG image.
-4. **Lembrete de manutenção**: ao aprovar, "avisar em 6 meses" -> link WhatsApp para reabordar.
 5. **Web push** ao técnico na aprovação (PWA).
 6. **Service worker** só se houver necessidade real de offline.
 7. **`/clientes`**: histórico, total aprovado, "novo orçamento" pré-preenchido.

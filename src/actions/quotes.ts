@@ -364,3 +364,45 @@ export async function setQuotePaid(quoteId: string, paid: boolean): Promise<Acti
   revalidatePath("/inicio");
   return { ok: true, data: undefined };
 }
+
+const reminderSchema = z.object({ months: z.union([z.literal(3), z.literal(6), z.literal(12)]).nullable() });
+
+// Lembrete de manutenção: só em orçamento aprovado. months = null remove o lembrete.
+export async function setMaintenanceReminder(quoteId: string, months: number | null): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const parsed = reminderSchema.safeParse({ months });
+  if (!parsed.success) return { ok: false, error: "Prazo inválido" };
+
+  const reminderAt =
+    parsed.data.months === null
+      ? null
+      : (() => {
+          const d = new Date();
+          d.setMonth(d.getMonth() + parsed.data.months);
+          return d;
+        })();
+
+  const { count } = await db.quote.updateMany({
+    where: { id: quoteId, userId, status: "APPROVED" },
+    data: { reminderAt, reminderDoneAt: null },
+  });
+  if (count === 0) return { ok: false, error: "Orçamento não encontrado ou não aprovado" };
+
+  revalidatePath(`/orcamentos/${quoteId}`);
+  revalidatePath("/inicio");
+  return { ok: true, data: undefined };
+}
+
+// Marca o lembrete como feito (some do início)
+export async function completeMaintenanceReminder(quoteId: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const { count } = await db.quote.updateMany({
+    where: { id: quoteId, userId, reminderAt: { not: null } },
+    data: { reminderDoneAt: new Date() },
+  });
+  if (count === 0) return { ok: false, error: "Lembrete não encontrado" };
+
+  revalidatePath(`/orcamentos/${quoteId}`);
+  revalidatePath("/inicio");
+  return { ok: true, data: undefined };
+}

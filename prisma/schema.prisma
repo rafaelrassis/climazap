@@ -75,6 +75,8 @@ model Quote {
   respondedAt     DateTime?
   rejectReason    String?
   paidAt          DateTime?
+  reminderAt      DateTime?
+  reminderDoneAt  DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -84,6 +86,7 @@ model Quote {
 
   @@unique([userId, number])
   @@index([userId, status, createdAt])
+  @@index([userId, reminderAt])
 }
 
 model QuoteItem {

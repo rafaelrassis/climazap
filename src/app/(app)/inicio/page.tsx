@@ -4,6 +4,7 @@ import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { CompleteReminderButton } from "@/components/quotes/complete-reminder-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -31,6 +32,8 @@ function Stat({ label, value, hint, href }: { label: string; value: string; hint
   );
 }
 
+const fmtMonth = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "America/Sao_Paulo" });
+
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export default async function InicioPage() {
@@ -42,7 +45,7 @@ export default async function InicioPage() {
   const since30 = new Date(now.getTime() - 30 * DAY_MS);
   const staleSince = new Date(now.getTime() - 2 * DAY_MS);
 
-  const [pending, approvedMonth, receivable, answered30, approved30, stale] = await Promise.all([
+  const [pending, approvedMonth, receivable, answered30, approved30, stale, due] = await Promise.all([
     db.quote.aggregate({ where: { userId, status: "SENT" }, _count: true, _sum: { totalCents: true } }),
     db.quote.aggregate({
       where: { userId, status: "APPROVED", respondedAt: { gte: monthStart } },
@@ -61,6 +64,12 @@ export default async function InicioPage() {
       orderBy: { sentAt: "asc" },
       take: 5,
       select: { id: true, number: true, customerName: true, customerPhone: true, totalCents: true },
+    }),
+    db.quote.findMany({
+      where: { userId, reminderAt: { lte: now }, reminderDoneAt: null },
+      orderBy: { reminderAt: "asc" },
+      take: 5,
+      select: { id: true, customerName: true, customerPhone: true, respondedAt: true },
     }),
   ]);
 
@@ -101,6 +110,35 @@ export default async function InicioPage() {
           href="/orcamentos"
         />
       </div>
+
+      {due.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Hora da manutenção</h2>
+          {due.map((q) => (
+            <Card key={q.id}>
+              <CardContent className="flex items-center justify-between gap-2 p-3">
+                <Link href={`/orcamentos/${q.id}`} className="flex min-h-11 min-w-0 flex-1 flex-col justify-center">
+                  <span className="truncate text-sm">{q.customerName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    serviço de {q.respondedAt ? fmtMonth.format(q.respondedAt) : "—"}
+                  </span>
+                </Link>
+                <Button asChild className="h-11 shrink-0">
+                  <a
+                    href={buildWhatsAppUrl(
+                      q.customerPhone,
+                      `Oi, ${q.customerName}! Já faz um tempo desde o último serviço no seu ar-condicionado. Que tal agendar a manutenção preventiva?`,
+                    )}
+                  >
+                    Chamar
+                  </a>
+                </Button>
+                <CompleteReminderButton quoteId={q.id} />
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+      )}
 
       {stale.length > 0 && (
         <section className="space-y-2">
