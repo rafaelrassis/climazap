@@ -24,7 +24,7 @@ src/auth.ts             Auth.js (credentials) + rate limit no authorize
 src/auth.config.ts      config edge-safe (usada no middleware); PUBLIC_PREFIXES
 src/middleware.ts       protege rotas; públicas: /login /cadastro /o/ /api/health /icons /manifest
 src/actions/            auth, services, quotes, customers, settings (só funções de ação aqui: exports de "use server" viram endpoints)
-src/lib/                db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
+src/lib/                reminders (e-mail semanal), db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
 src/app/(auth)          login, cadastro
 src/app/(app)           inicio (dashboard), orcamentos (lista, novo, [id], [id]/editar), servicos, ajustes
 src/app/o/[publicId]    página pública + aprovar/recusar + opengraph-image
@@ -41,6 +41,9 @@ npm run lint && npx tsc --noEmit
 npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, padrão postgresql://postgres:postgres@localhost:5432/climazap_test). O banco precisa ter "test" no nome: o setup apaga o schema.
 npm run test:e2e        # Playwright (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
 ```
+
+## Cron
+`vercel.json`: segunda 11:00 UTC (8h BRT) chama `/api/cron/lembretes`, protegido por `CRON_SECRET` (Bearer). Rota pública no middleware, autenticada pelo segredo.
 
 ## Git
 Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nunca commitar `.env`.
