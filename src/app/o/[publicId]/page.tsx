@@ -92,6 +92,12 @@ export default async function PublicQuotePage({ params }: { params: { publicId: 
         </p>
       )}
 
+      {status === "DRAFT" && (
+        <p className="rounded-md border p-3 text-sm">
+          Este orçamento está sendo atualizado. Aguarde o novo link do técnico.
+        </p>
+      )}
+
       {status === "REJECTED" && (
         <p className="rounded-md border p-3 text-sm">Orçamento recusado{q.respondedAt ? ` em ${fmtDate.format(q.respondedAt)}` : ""}.</p>
       )}
