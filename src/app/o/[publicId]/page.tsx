@@ -118,6 +118,17 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
         </p>
       )}
 
+      {status !== "DRAFT" && (
+        <a
+          href={`/o/${publicId}/pdf`}
+          target="_blank"
+          rel="noopener"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-md border text-sm font-medium"
+        >
+          Baixar PDF
+        </a>
+      )}
+
       {status === "DRAFT" && (
         <p className="rounded-md border p-3 text-sm">
           Este orçamento está sendo atualizado. Aguarde o novo link do técnico.

@@ -24,11 +24,11 @@ src/auth.ts             Auth.js (credentials) + rate limit no authorize
 src/auth.config.ts      config edge-safe (usada no middleware); PUBLIC_PREFIXES
 src/middleware.ts       protege rotas; públicas: /login /cadastro /o/ /api/health /icons /manifest
 src/actions/            auth, services, quotes, customers, settings (só funções de ação aqui: exports de "use server" viram endpoints)
-src/lib/                error-report (alerta por e-mail, via src/instrumentation.ts), password-reset, push (web push), unsubscribe (link assinado), reminders (resumo semanal), db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
+src/lib/                quote-pdf (pdf-lib), error-report (alerta por e-mail, via src/instrumentation.ts), password-reset, push (web push), unsubscribe (link assinado), reminders (resumo semanal), db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
 src/app/(auth)          login, cadastro, esqueci-senha, redefinir-senha
 src/app/privacidade, termos  páginas legais (LGPD); revisar o texto com um advogado antes de divulgar
 src/app/(app)           inicio (dashboard), orcamentos (lista, novo, [id], [id]/editar), servicos, clientes (lista, [id]), ajustes
-src/app/o/[publicId]    página pública + aprovar/recusar + opengraph-image
+src/app/o/[publicId]    página pública + aprovar/recusar + opengraph-image + logo + pdf
 public/sw.js            service worker (só push)
 src/components/         bottom-nav, money-input, logout-button, quotes/, services/, settings/
 ```
@@ -41,7 +41,7 @@ npx prisma migrate dev --name <nome>
 npx prisma db seed
 npm run lint && npx tsc --noEmit
 npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, padrão postgresql://postgres:postgres@localhost:5432/climazap_test). O banco precisa ter "test" no nome: o setup apaga o schema.
-npm run test:e2e        # 35 testes Playwright (fluxos, formulário, segurança/XSS, layout a 320-430px, acessibilidade axe, PWA, LGPD) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
+npm run test:e2e        # 36 testes Playwright (fluxos, formulário, segurança/XSS, layout a 320-430px, acessibilidade axe, PWA, LGPD) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
 ```
 
 ## Deploy
