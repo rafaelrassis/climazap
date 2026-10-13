@@ -17,6 +17,7 @@
 | `NEXT_PUBLIC_APP_URL` | `https://fechouclima.com.br` |
 | `RESEND_API_KEY` | chave do Resend |
 | `EMAIL_FROM` | `FechouClima <avisos@fechouclima.com.br>` (domínio verificado no Resend: SPF + DKIM) |
+| `ERROR_ALERT_EMAIL` | seu e-mail: recebe 1 alerta por tipo de erro de servidor por hora |
 | `CRON_SECRET` | `openssl rand -hex 32` |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | chave pública VAPID (`npx web-push generate-vapid-keys`) |
 | `VAPID_PRIVATE_KEY` | chave privada VAPID (gerada junto; nunca commitar) |

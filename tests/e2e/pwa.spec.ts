@@ -28,3 +28,10 @@ test("manifest, ícones e ajustes de avisos", async ({ page, request }) => {
   // sem chaves VAPID no servidor de teste, o navegador informa que não há suporte (sem botão)
   await expect(page.getByText(/não permite avisos|Verificando/)).toBeVisible();
 });
+
+test("página 404 em português e sem estouro", async ({ page }) => {
+  const res = await page.goto("/rota-que-nao-existe");
+  expect(res?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Página não encontrada" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ir para o início" })).toBeVisible();
+});

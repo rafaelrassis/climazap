@@ -24,7 +24,7 @@ src/auth.ts             Auth.js (credentials) + rate limit no authorize
 src/auth.config.ts      config edge-safe (usada no middleware); PUBLIC_PREFIXES
 src/middleware.ts       protege rotas; públicas: /login /cadastro /o/ /api/health /icons /manifest
 src/actions/            auth, services, quotes, customers, settings (só funções de ação aqui: exports de "use server" viram endpoints)
-src/lib/                password-reset, push (web push), unsubscribe (link assinado), reminders (resumo semanal), db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
+src/lib/                error-report (alerta por e-mail, via src/instrumentation.ts), password-reset, push (web push), unsubscribe (link assinado), reminders (resumo semanal), db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
 src/app/(auth)          login, cadastro, esqueci-senha, redefinir-senha
 src/app/privacidade, termos  páginas legais (LGPD); revisar o texto com um advogado antes de divulgar
 src/app/(app)           inicio (dashboard), orcamentos (lista, novo, [id], [id]/editar), servicos, clientes (lista, [id]), ajustes
