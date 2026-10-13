@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
@@ -12,14 +13,14 @@ const fmtDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone:
 
 export default async function QuoteDetailPage({ params }: { params: { id: string } }) {
   const userId = await requireUserId();
+  await expireStaleQuotes(userId);
   const q = await db.quote.findFirst({
     where: { id: params.id, userId },
     include: { items: { orderBy: { position: "asc" } } },
   });
   if (!q) notFound();
 
-  const expired = !!q.validUntil && q.validUntil < new Date();
-  const status = q.status === "SENT" && expired ? "EXPIRED" : q.status;
+  const status = q.status;
 
   return (
     <div className="space-y-4 pb-6">
@@ -74,7 +75,7 @@ export default async function QuoteDetailPage({ params }: { params: { id: string
 
       {q.notes && <p className="whitespace-pre-line text-sm text-muted-foreground">{q.notes}</p>}
 
-      <QuoteActions quoteId={q.id} publicId={q.publicId} isDraft={q.status === "DRAFT"} />
+      <QuoteActions quoteId={q.id} publicId={q.publicId} status={q.status} customerPhone={q.customerPhone} />
     </div>
   );
 }

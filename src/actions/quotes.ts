@@ -141,7 +141,10 @@ export async function approveQuoteByPublicId(publicId: string): Promise<ActionRe
 }
 
 // Copia o orçamento como novo rascunho (snapshot dos itens, sem recalcular pelo catálogo)
-export async function duplicateQuote(quoteId: string): Promise<ActionResult<{ id: string }>> {
+export async function duplicateQuote(
+  quoteId: string,
+  extraDiscountPercent = 0,
+): Promise<ActionResult<{ id: string }>> {
   const userId = await requireUserId();
 
   const src = await db.quote.findFirst({
@@ -149,6 +152,10 @@ export async function duplicateQuote(quoteId: string): Promise<ActionResult<{ id
     include: { items: { orderBy: { position: "asc" } } },
   });
   if (!src) return { ok: false, error: "Orçamento não encontrado" };
+
+  const pct = Math.min(Math.max(extraDiscountPercent, 0), 50);
+  const subtotal = src.items.reduce((acc, i) => acc + i.totalCents, 0);
+  const discountCents = Math.min(src.discountCents + Math.round((subtotal * pct) / 100), subtotal);
 
   const copy = await db.$transaction(async (tx) => {
     const { quoteSeq } = await tx.user.update({
@@ -165,8 +172,8 @@ export async function duplicateQuote(quoteId: string): Promise<ActionResult<{ id
         customerAddress: src.customerAddress,
         title: src.title,
         notes: src.notes,
-        discountCents: src.discountCents,
-        totalCents: src.totalCents,
+        discountCents,
+        totalCents: subtotal - discountCents,
         validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         items: {
           create: src.items.map((i) => ({
@@ -206,6 +213,22 @@ export async function rejectQuoteByPublicId(publicId: string, reason?: string): 
   }
 
   revalidatePath(`/o/${publicId}`);
+  revalidatePath("/orcamentos");
+  return { ok: true, data: undefined };
+}
+
+// Renova a validade de um orçamento expirado e o devolve para "Enviado"
+export async function renewQuote(quoteId: string, days = 7): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const { count } = await db.quote.updateMany({
+    where: { id: quoteId, userId, status: { in: ["EXPIRED", "SENT"] } },
+    data: { status: "SENT", validUntil: new Date(Date.now() + days * 24 * 60 * 60 * 1000) },
+  });
+  if (count === 0) return { ok: false, error: "Orçamento não pode ser renovado" };
+
+  const q = await db.quote.findFirst({ where: { id: quoteId, userId }, select: { publicId: true } });
+  if (q) revalidatePath(`/o/${q.publicId}`);
+  revalidatePath(`/orcamentos/${quoteId}`);
   revalidatePath("/orcamentos");
   return { ok: true, data: undefined };
 }

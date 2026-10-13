@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
@@ -9,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default async function OrcamentosPage() {
   const userId = await requireUserId();
+  await expireStaleQuotes(userId);
   const quotes = await db.quote.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
