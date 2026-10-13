@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { LIMITS, getClientIp, rateLimit } from "@/lib/rate-limit";
 import { requireUserId } from "@/lib/session";
 import { calcLineCents, formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
@@ -115,6 +116,8 @@ export async function sendQuoteViaWhatsApp(quoteId: string): Promise<ActionResul
 
 // Pública (sem auth): cliente aprova pelo link
 export async function approveQuoteByPublicId(publicId: string): Promise<ActionResult> {
+  const rl = await rateLimit(`public:${await getClientIp()}`, LIMITS.publicAction.limit, LIMITS.publicAction.windowSec);
+  if (!rl.ok) return { ok: false, error: "Muitas tentativas. Tente novamente em alguns minutos." };
   if (!/^[0-9a-f-]{36}$/i.test(publicId)) return { ok: false, error: "Link inválido" };
 
   const now = new Date();
@@ -197,6 +200,8 @@ export async function duplicateQuote(
 
 // Pública (sem auth): cliente recusa pelo link, com motivo opcional
 export async function rejectQuoteByPublicId(publicId: string, reason?: string): Promise<ActionResult> {
+  const rl = await rateLimit(`public:${await getClientIp()}`, LIMITS.publicAction.limit, LIMITS.publicAction.windowSec);
+  if (!rl.ok) return { ok: false, error: "Muitas tentativas. Tente novamente em alguns minutos." };
   if (!/^[0-9a-f-]{36}$/i.test(publicId)) return { ok: false, error: "Link inválido" };
 
   const rejectReason = reason?.trim().slice(0, 300) || null;

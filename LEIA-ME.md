@@ -45,7 +45,7 @@ commite e envie na main. Ao final, traga opiniões/riscos curtos e 2 ideias nova
 ```
 
 ## Checklist antes de produção
-- [ ] `AUTH_SECRET`, `DATABASE_URL`, `NEXT_PUBLIC_APP_URL` e `AUTH_TRUST_HOST` (fora da Vercel) configurados
-- [ ] Rate limit no login (roadmap 5)
+- [ ] `AUTH_SECRET`, `DATABASE_URL` (pooler Neon), `DIRECT_URL`, `NEXT_PUBLIC_APP_URL` e `AUTH_TRUST_HOST` (fora da Vercel) configurados
+- [x] Rate limit (Postgres, tabela RateLimit)
 - [ ] Seed rodado sem criar usuário demo (`NODE_ENV=production`)
 - [ ] Repo privado, se o código for diferencial comercial
