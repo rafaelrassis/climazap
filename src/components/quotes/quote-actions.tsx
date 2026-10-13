@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { duplicateQuote, renewQuote, sendQuoteViaWhatsApp } from "@/actions/quotes";
+import { duplicateQuote, renewQuote, sendQuoteViaWhatsApp, setQuotePaid } from "@/actions/quotes";
 import { normalizeBrPhone } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import type { QuoteStatus } from "@prisma/client";
@@ -14,11 +14,13 @@ export function QuoteActions({
   publicId,
   status,
   customerPhone,
+  paid,
 }: {
   quoteId: string;
   publicId: string;
   status: QuoteStatus;
   customerPhone: string;
+  paid: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -59,6 +61,18 @@ export function QuoteActions({
     });
   }
 
+  function togglePaid() {
+    startTransition(async () => {
+      const res = await setQuotePaid(quoteId, !paid);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(paid ? "Marcado como a receber" : "Marcado como pago");
+      router.refresh();
+    });
+  }
+
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/o/${publicId}`);
@@ -73,6 +87,16 @@ export function QuoteActions({
       {canSend && (
         <Button className="h-12 w-full text-base" onClick={send} disabled={pending}>
           {status === "DRAFT" ? "Enviar no WhatsApp" : "Reenviar no WhatsApp"}
+        </Button>
+      )}
+      {status === "APPROVED" && (
+        <Button
+          variant={paid ? "outline" : "default"}
+          className="h-12 w-full text-base"
+          onClick={togglePaid}
+          disabled={pending}
+        >
+          {paid ? "Desmarcar pagamento" : "Marcar como pago"}
         </Button>
       )}
       {status === "EXPIRED" && (

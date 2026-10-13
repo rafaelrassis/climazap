@@ -349,3 +349,18 @@ export async function renewQuote(quoteId: string, days = 7): Promise<ActionResul
   revalidatePath("/orcamentos");
   return { ok: true, data: undefined };
 }
+
+// Controle de recebimento: só orçamento aprovado pode ser marcado como pago
+export async function setQuotePaid(quoteId: string, paid: boolean): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const { count } = await db.quote.updateMany({
+    where: { id: quoteId, userId, status: "APPROVED" },
+    data: { paidAt: paid ? new Date() : null },
+  });
+  if (count === 0) return { ok: false, error: "Orçamento não encontrado ou não aprovado" };
+
+  revalidatePath(`/orcamentos/${quoteId}`);
+  revalidatePath("/orcamentos");
+  revalidatePath("/inicio");
+  return { ok: true, data: undefined };
+}

@@ -74,6 +74,7 @@ model Quote {
   sentAt          DateTime?
   respondedAt     DateTime?
   rejectReason    String?
+  paidAt          DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 

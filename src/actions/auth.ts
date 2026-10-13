@@ -21,7 +21,7 @@ export async function loginAction(
     await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
-      redirectTo: "/orcamentos",
+      redirectTo: "/inicio",
     });
   } catch (e) {
     if (e instanceof AuthError) {
@@ -69,7 +69,7 @@ export async function registerAction(
   }
 
   try {
-    await signIn("credentials", { email, password, redirectTo: "/orcamentos" });
+    await signIn("credentials", { email, password, redirectTo: "/inicio" });
   } catch (e) {
     if (e instanceof AuthError) return { error: "Conta criada. Entre pelo login." };
     throw e; // NEXT_REDIRECT

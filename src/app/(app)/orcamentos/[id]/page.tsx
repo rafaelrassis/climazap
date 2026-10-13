@@ -31,7 +31,10 @@ export default async function QuoteDetailPage({ params }: { params: { id: string
       <header className="space-y-1">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-lg font-semibold">Orçamento #{q.number}</h1>
-          <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
+          <Badge variant={STATUS_VARIANT[status]}>
+            {STATUS_LABEL[status]}
+            {status === "APPROVED" && q.paidAt ? " · Pago" : ""}
+          </Badge>
         </div>
         <p className="text-sm">{q.customerName}</p>
         {q.title && <p className="text-sm text-muted-foreground">{q.title}</p>}
@@ -75,7 +78,7 @@ export default async function QuoteDetailPage({ params }: { params: { id: string
 
       {q.notes && <p className="whitespace-pre-line text-sm text-muted-foreground">{q.notes}</p>}
 
-      <QuoteActions quoteId={q.id} publicId={q.publicId} status={q.status} customerPhone={q.customerPhone} />
+      <QuoteActions quoteId={q.id} publicId={q.publicId} status={q.status} customerPhone={q.customerPhone} paid={!!q.paidAt} />
     </div>
   );
 }

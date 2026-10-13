@@ -13,7 +13,7 @@ export const authConfig = {
       const isPublic = PUBLIC_PREFIXES.some((p) => path.startsWith(p));
 
       if (path.startsWith("/login") && isLoggedIn) {
-        return Response.redirect(new URL("/orcamentos", nextUrl));
+        return Response.redirect(new URL("/inicio", nextUrl));
       }
       return isPublic || isLoggedIn;
     },
