@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
@@ -45,6 +45,8 @@ type Line = {
   unitPriceCents: number;
 };
 
+const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const toNumber = (s: string) => {
   const n = Number(s.replace(",", "."));
@@ -63,10 +65,12 @@ export function QuoteForm({
   services,
   customers,
   initial,
+  userId,
 }: {
   services: ServiceOption[];
   customers: CustomerOption[];
   initial?: QuoteFormInitial;
+  userId: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -89,6 +93,77 @@ export function QuoteForm({
   const [validDays, setValidDays] = useState(String(initial?.validDays ?? 7));
 
   const [picked, setPicked] = useState(!!initial);
+
+  // Rascunho local (só em orçamento novo): sobrevive a fechar a aba/perder sinal. Chave por usuário.
+  const draftKey = `fc:draft:${userId}`;
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (initial) return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const d = JSON.parse(raw) as {
+          savedAt: number;
+          customerName: string;
+          phone: string;
+          address: string;
+          lines: Line[];
+          discountCents: number;
+          validDays: string;
+        };
+        if (Date.now() - d.savedAt < DRAFT_TTL_MS && (d.customerName || d.lines?.length)) {
+          setCustomerName(d.customerName ?? "");
+          setPhone(d.phone ?? "");
+          setAddress(d.address ?? "");
+          setLines(Array.isArray(d.lines) ? d.lines : []);
+          setDiscountCents(d.discountCents ?? 0);
+          setValidDays(d.validDays ?? "7");
+          setPicked(true);
+          toast("Rascunho restaurado", {
+            action: {
+              label: "Descartar",
+              onClick: () => {
+                localStorage.removeItem(draftKey);
+                setCustomerName("");
+                setPhone("");
+                setAddress("");
+                setLines([]);
+                setDiscountCents(0);
+                setValidDays("7");
+                setPicked(false);
+              },
+            },
+          });
+        } else {
+          localStorage.removeItem(draftKey);
+        }
+      }
+    } catch {
+      // localStorage indisponível ou JSON inválido: segue sem rascunho
+    }
+    hydrated.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (initial || !hydrated.current) return;
+    const t = setTimeout(() => {
+      try {
+        if (!customerName && !phone && !address && lines.length === 0) {
+          localStorage.removeItem(draftKey);
+          return;
+        }
+        localStorage.setItem(
+          draftKey,
+          JSON.stringify({ savedAt: Date.now(), customerName, phone, address, lines, discountCents, validDays }),
+        );
+      } catch {
+        // cota cheia ou bloqueado: ignora
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [initial, draftKey, customerName, phone, address, lines, discountCents, validDays]);
   const suggestions = useMemo(() => {
     const q = customerName.trim().toLowerCase();
     if (picked || q.length < 2) return [];
@@ -174,6 +249,15 @@ export function QuoteForm({
         const first = Object.values(res.fieldErrors ?? {}).flat()[0];
         toast.error(first ?? res.error);
         return;
+      }
+
+      if (!initial) {
+        try {
+          localStorage.removeItem(draftKey);
+        } catch {
+          // ignora
+        }
+        hydrated.current = false;
       }
 
       if (!sendNow) {

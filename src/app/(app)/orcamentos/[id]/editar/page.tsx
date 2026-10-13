@@ -34,6 +34,7 @@ export default async function EditarOrcamentoPage({ params }: { params: { id: st
       <QuoteForm
         services={services}
         customers={customers}
+        userId={userId}
         initial={{
           quoteId: q.id,
           customerName: q.customerName,

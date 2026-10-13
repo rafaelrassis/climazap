@@ -50,7 +50,6 @@ Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tare
 Pronto: schema, seed (9 serviços padrão + usuário demo só fora de produção), actions de services/quotes (criar, enviar via WhatsApp, aprovar por publicId), Auth.js, login, listagem, `/orcamentos/novo`, página pública com modal de confirmação.
 
 ## Roadmap (nesta ordem)
-10. **Rascunho do formulário em `localStorage`**.
 11. **Template editável da mensagem do WhatsApp** (`User.waTemplate` com `{cliente}`, `{valor}`, `{link}`).
 12. **OG image / PDF** do orçamento (`opengraph-image.tsx`).
 13. **Dashboard**: pendentes, aprovados e valor a receber (requisito do MVP).
