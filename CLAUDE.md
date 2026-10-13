@@ -50,7 +50,6 @@ Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tare
 Pronto: schema, seed (9 serviços padrão + usuário demo só fora de produção), actions de services/quotes (criar, enviar via WhatsApp, aprovar por publicId), Auth.js, login, listagem, `/orcamentos/novo`, página pública com modal de confirmação.
 
 ## Roadmap (nesta ordem)
-7. **Editar orçamento enviado**: ao editar, voltar para `DRAFT` (evita aprovar versão antiga).
 8. **Aviso ao técnico na aprovação** (e-mail ou WhatsApp).
 9. **Customer**: tabela de clientes com autocomplete no formulário.
 10. **Rascunho do formulário em `localStorage`**.

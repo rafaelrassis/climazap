@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { LIMITS, getClientIp, rateLimit } from "@/lib/rate-limit";
 import { requireUserId } from "@/lib/session";
@@ -8,6 +9,71 @@ import { calcLineCents, formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { createQuoteSchema, type CreateQuoteInput } from "@/lib/validations/quote";
 import type { ActionResult } from "@/types/action";
+
+type Prepared = {
+  items: {
+    serviceId: string | null;
+    description: string;
+    unit: string;
+    quantity: number;
+    unitPriceCents: number;
+    totalCents: number;
+    position: number;
+  }[];
+  totalCents: number;
+  validUntil: Date;
+};
+
+// Valida e monta o snapshot dos itens. lenient: serviço removido do catálogo vira item avulso (edição).
+async function prepareQuote(
+  userId: string,
+  data: z.output<typeof createQuoteSchema>,
+  lenient: boolean,
+): Promise<{ ok: true; prepared: Prepared } | { ok: false; error: string }> {
+  const serviceIds = Array.from(new Set(data.items.map((i) => i.serviceId).filter((v): v is string => !!v)));
+  const services = serviceIds.length
+    ? await db.service.findMany({
+        where: { id: { in: serviceIds }, isActive: true, OR: [{ userId: null }, { userId }] },
+      })
+    : [];
+  const serviceMap = new Map(services.map((s) => [s.id, s]));
+
+  if (!lenient && serviceIds.some((id) => !serviceMap.has(id))) {
+    return { ok: false, error: "Serviço não encontrado" };
+  }
+
+  // Snapshot: copia descrição/unidade/preço do catálogo no momento da criação
+  const items: Prepared["items"] = [];
+  for (let position = 0; position < data.items.length; position++) {
+    const item = data.items[position];
+    const svc = item.serviceId ? (serviceMap.get(item.serviceId) ?? null) : null;
+    const description = item.description ?? svc?.name;
+    const unitPriceCents = item.unitPriceCents ?? svc?.priceCents;
+    if (!description || unitPriceCents === undefined) return { ok: false, error: "Item inválido" };
+    const quantity = Math.round(item.quantity * 100) / 100;
+    items.push({
+      serviceId: svc?.id ?? null,
+      description,
+      unit: item.unit ?? svc?.unit ?? "un",
+      quantity,
+      unitPriceCents,
+      totalCents: calcLineCents(quantity, unitPriceCents),
+      position,
+    });
+  }
+
+  const subtotal = items.reduce((acc, i) => acc + i.totalCents, 0);
+  if (data.discountCents > subtotal) return { ok: false, error: "Desconto maior que o subtotal" };
+
+  return {
+    ok: true,
+    prepared: {
+      items,
+      totalCents: subtotal - data.discountCents,
+      validUntil: new Date(Date.now() + data.validDays * 24 * 60 * 60 * 1000),
+    },
+  };
+}
 
 export async function createQuote(
   input: CreateQuoteInput,
@@ -19,40 +85,9 @@ export async function createQuote(
   }
   const data = parsed.data;
 
-  const serviceIds = Array.from(new Set(data.items.map((i) => i.serviceId).filter((v): v is string => !!v)));
-  const services = serviceIds.length
-    ? await db.service.findMany({
-        where: { id: { in: serviceIds }, isActive: true, OR: [{ userId: null }, { userId }] },
-      })
-    : [];
-  const serviceMap = new Map(services.map((s) => [s.id, s]));
-
-  if (serviceIds.some((id) => !serviceMap.has(id))) {
-    return { ok: false, error: "Serviço não encontrado" };
-  }
-
-  // Snapshot: copia descrição/unidade/preço do catálogo no momento da criação
-  const items = data.items.map((item, position) => {
-    const svc = item.serviceId ? serviceMap.get(item.serviceId)! : null;
-    const quantity = Math.round(item.quantity * 100) / 100;
-    const unitPriceCents = item.unitPriceCents ?? svc!.priceCents;
-    return {
-      serviceId: svc?.id ?? null,
-      description: item.description ?? svc!.name,
-      unit: item.unit ?? svc?.unit ?? "un",
-      quantity,
-      unitPriceCents,
-      totalCents: calcLineCents(quantity, unitPriceCents),
-      position,
-    };
-  });
-
-  const subtotal = items.reduce((acc, i) => acc + i.totalCents, 0);
-  if (data.discountCents > subtotal) {
-    return { ok: false, error: "Desconto maior que o subtotal" };
-  }
-  const totalCents = subtotal - data.discountCents;
-  const validUntil = new Date(Date.now() + data.validDays * 24 * 60 * 60 * 1000);
+  const prep = await prepareQuote(userId, data, false);
+  if (!prep.ok) return prep;
+  const { items, totalCents, validUntil } = prep.prepared;
 
   const quote = await db.$transaction(async (tx) => {
     const { quoteSeq } = await tx.user.update({
@@ -80,6 +115,55 @@ export async function createQuote(
 
   revalidatePath("/orcamentos");
   return { ok: true, data: quote };
+}
+
+// Edita um orçamento não aprovado. Volta para DRAFT: o link antigo deixa de permitir aprovar a versão velha.
+export async function updateQuote(
+  quoteId: string,
+  input: CreateQuoteInput,
+): Promise<ActionResult<{ id: string; number: number }>> {
+  const userId = await requireUserId();
+  const parsed = createQuoteSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Dados inválidos", fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  const data = parsed.data;
+
+  const prep = await prepareQuote(userId, data, true);
+  if (!prep.ok) return prep;
+  const { items, totalCents, validUntil } = prep.prepared;
+
+  const updated = await db.$transaction(async (tx) => {
+    // updateMany condicional: se o cliente aprovou no meio da edição, count = 0
+    const { count } = await tx.quote.updateMany({
+      where: { id: quoteId, userId, status: { not: "APPROVED" } },
+      data: {
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerAddress: data.customerAddress ?? null,
+        title: data.title ?? null,
+        notes: data.notes ?? null,
+        discountCents: data.discountCents,
+        totalCents,
+        validUntil,
+        status: "DRAFT",
+        sentAt: null,
+        respondedAt: null,
+        rejectReason: null,
+      },
+    });
+    if (count === 0) return null;
+    await tx.quoteItem.deleteMany({ where: { quoteId } });
+    await tx.quoteItem.createMany({ data: items.map((i) => ({ ...i, quoteId })) });
+    return tx.quote.findUniqueOrThrow({ where: { id: quoteId }, select: { publicId: true, number: true } });
+  });
+
+  if (!updated) return { ok: false, error: "Orçamento não encontrado ou já aprovado" };
+
+  revalidatePath("/orcamentos");
+  revalidatePath(`/orcamentos/${quoteId}`);
+  revalidatePath(`/o/${updated.publicId}`);
+  return { ok: true, data: { id: quoteId, number: updated.number } };
 }
 
 // Gera o link wa.me e marca como SENT (se ainda rascunho)

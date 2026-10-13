@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { duplicateQuote, renewQuote, sendQuoteViaWhatsApp } from "@/actions/quotes";
@@ -82,6 +83,11 @@ export function QuoteActions({
       {status === "REJECTED" && (
         <Button className="h-12 w-full text-base" onClick={() => duplicate(5)} disabled={pending}>
           Contraproposta com 5% de desconto
+        </Button>
+      )}
+      {status !== "APPROVED" && (
+        <Button asChild variant="outline" className="h-11 w-full">
+          <Link href={`/orcamentos/${quoteId}/editar`}>Editar</Link>
         </Button>
       )}
       <div className="grid grid-cols-2 gap-2">

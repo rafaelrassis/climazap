@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
-import { createQuote, sendQuoteViaWhatsApp } from "@/actions/quotes";
+import { createQuote, sendQuoteViaWhatsApp, updateQuote } from "@/actions/quotes";
 import { calcLineCents, formatBRL } from "@/lib/money";
 import type { CreateQuoteInput } from "@/lib/validations/quote";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,16 @@ type ServiceOption = {
   unit: string;
   priceCents: number;
   userId: string | null;
+};
+
+export type QuoteFormInitial = {
+  quoteId: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  discountCents: number;
+  validDays: number;
+  items: { serviceId: string | null; description: string; unit: string; quantity: number; unitPriceCents: number }[];
 };
 
 type Line = {
@@ -47,17 +57,26 @@ function maskPhone(v: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-export function QuoteForm({ services }: { services: ServiceOption[] }) {
+export function QuoteForm({ services, initial }: { services: ServiceOption[]; initial?: QuoteFormInitial }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const [customerName, setCustomerName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [lines, setLines] = useState<Line[]>([]);
-  const [discountCents, setDiscountCents] = useState(0);
-  const [validDays, setValidDays] = useState("7");
+  const [customerName, setCustomerName] = useState(initial?.customerName ?? "");
+  const [phone, setPhone] = useState(initial ? maskPhone(initial.customerPhone) : "");
+  const [address, setAddress] = useState(initial?.customerAddress ?? "");
+  const [lines, setLines] = useState<Line[]>(() =>
+    (initial?.items ?? []).map((i) => ({
+      key: crypto.randomUUID(),
+      serviceId: i.serviceId,
+      description: i.description,
+      unit: i.unit,
+      quantity: String(i.quantity).replace(".", ","),
+      unitPriceCents: i.unitPriceCents,
+    })),
+  );
+  const [discountCents, setDiscountCents] = useState(initial?.discountCents ?? 0);
+  const [validDays, setValidDays] = useState(String(initial?.validDays ?? 7));
 
   const { subtotal, total } = useMemo(() => {
     const subtotal = lines.reduce(
@@ -121,7 +140,9 @@ export function QuoteForm({ services }: { services: ServiceOption[] }) {
     };
 
     startTransition(async () => {
-      const res = await createQuote(payload);
+      const res = initial
+        ? await updateQuote(initial.quoteId, payload)
+        : await createQuote(payload);
       if (!res.ok) {
         const first = Object.values(res.fieldErrors ?? {}).flat()[0];
         toast.error(first ?? res.error);
@@ -129,8 +150,8 @@ export function QuoteForm({ services }: { services: ServiceOption[] }) {
       }
 
       if (!sendNow) {
-        toast.success(`Rascunho #${res.data.number} salvo`);
-        router.push("/orcamentos");
+        toast.success(initial ? `Orçamento #${res.data.number} atualizado` : `Rascunho #${res.data.number} salvo`);
+        router.push(initial ? `/orcamentos/${res.data.id}` : "/orcamentos");
         return;
       }
 
