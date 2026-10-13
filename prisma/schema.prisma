@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  companyName  String?
+  quoteSeq     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  services Service[]
+  quotes   Quote[]
+}
+
+// userId null = serviço padrão do sistema (seed); preenchido = catálogo do usuário
+model Service {
+  id          String   @id @default(cuid())
+  userId      String?
+  name        String
+  description String?
+  unit        String   @default("un")
+  priceCents  Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items QuoteItem[]
+
+  @@index([userId, isActive])
+}
+
+model Quote {
+  id              String      @id @default(cuid())
+  publicId        String      @unique @default(uuid())
+  number          Int
+  userId          String
+  customerName    String
+  customerPhone   String
+  customerAddress String?
+  title           String?
+  notes           String?
+  status          QuoteStatus @default(DRAFT)
+  discountCents   Int         @default(0)
+  totalCents      Int         @default(0)
+  validUntil      DateTime?
+  sentAt          DateTime?
+  respondedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items QuoteItem[]
+
+  @@unique([userId, number])
+  @@index([userId, status, createdAt])
+}
+
+model QuoteItem {
+  id             String  @id @default(cuid())
+  quoteId        String
+  serviceId      String?
+  description    String
+  unit           String  @default("un")
+  quantity       Decimal @db.Decimal(10, 2)
+  unitPriceCents Int
+  totalCents     Int
+  position       Int     @default(0)
+
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId, position])
+}
