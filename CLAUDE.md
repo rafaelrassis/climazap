@@ -55,7 +55,6 @@ Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tare
 Roadmap 1-14 concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA (sem service worker), navegação inferior.
 
 ## Roadmap (nesta ordem)
-3. **Logo do técnico** (upload) na página pública e na OG image.
 5. **Web push** ao técnico na aprovação (PWA).
 6. **Service worker** só se houver necessidade real de offline.
 

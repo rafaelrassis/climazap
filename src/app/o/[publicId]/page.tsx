@@ -44,7 +44,7 @@ export default async function PublicQuotePage({ params }: { params: { publicId: 
       validUntil: true,
       respondedAt: true,
       rejectReason: true,
-      user: { select: { name: true, companyName: true } },
+      user: { select: { name: true, companyName: true, logoUpdatedAt: true } },
       items: {
         orderBy: { position: "asc" },
         select: { id: true, description: true, unit: true, quantity: true, unitPriceCents: true, totalCents: true },
@@ -60,6 +60,14 @@ export default async function PublicQuotePage({ params }: { params: { publicId: 
   return (
     <main className="mx-auto min-h-dvh max-w-lg space-y-4 px-4 py-6 pb-32">
       <header className="space-y-1">
+        {q.user.logoUpdatedAt && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/o/${params.publicId}/logo?v=${q.user.logoUpdatedAt.getTime()}`}
+            alt={q.user.companyName ?? q.user.name}
+            className="h-14 w-auto max-w-[60%] object-contain"
+          />
+        )}
         <p className="text-sm text-muted-foreground">{q.user.companyName ?? q.user.name}</p>
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-xl font-semibold">Orçamento #{q.number}</h1>
