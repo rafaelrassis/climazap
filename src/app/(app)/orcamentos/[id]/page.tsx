@@ -66,6 +66,12 @@ export default async function QuoteDetailPage({ params }: { params: { id: string
         </CardContent>
       </Card>
 
+      {q.status === "REJECTED" && q.rejectReason && (
+        <p className="rounded-md border p-3 text-sm">
+          <span className="font-medium">Motivo da recusa:</span> {q.rejectReason}
+        </p>
+      )}
+
       {q.notes && <p className="whitespace-pre-line text-sm text-muted-foreground">{q.notes}</p>}
 
       <QuoteActions quoteId={q.id} publicId={q.publicId} isDraft={q.status === "DRAFT"} />

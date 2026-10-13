@@ -187,3 +187,25 @@ export async function duplicateQuote(quoteId: string): Promise<ActionResult<{ id
   revalidatePath("/orcamentos");
   return { ok: true, data: copy };
 }
+
+// Pública (sem auth): cliente recusa pelo link, com motivo opcional
+export async function rejectQuoteByPublicId(publicId: string, reason?: string): Promise<ActionResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(publicId)) return { ok: false, error: "Link inválido" };
+
+  const rejectReason = reason?.trim().slice(0, 300) || null;
+  const { count } = await db.quote.updateMany({
+    where: { publicId, status: "SENT" },
+    data: { status: "REJECTED", respondedAt: new Date(), rejectReason },
+  });
+
+  if (count === 0) {
+    const q = await db.quote.findUnique({ where: { publicId }, select: { status: true } });
+    if (!q) return { ok: false, error: "Orçamento não encontrado" };
+    if (q.status === "REJECTED") return { ok: true, data: undefined };
+    return { ok: false, error: "Este orçamento não pode mais ser recusado" };
+  }
+
+  revalidatePath(`/o/${publicId}`);
+  revalidatePath("/orcamentos");
+  return { ok: true, data: undefined };
+}
