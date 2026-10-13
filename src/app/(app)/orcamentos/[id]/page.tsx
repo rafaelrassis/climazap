@@ -5,6 +5,8 @@ import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
+import { CopyButton } from "@/components/copy-button";
+import { buildPixPayload } from "@/lib/pix";
 import { MaintenanceReminder } from "@/components/quotes/maintenance-reminder";
 import { QuoteActions } from "@/components/quotes/quote-actions";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +25,11 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   if (!q) notFound();
 
   const status = q.status;
+  const me = await db.user.findUnique({ where: { id: userId }, select: { name: true, companyName: true, pixKey: true, pixCity: true } });
+  const pixPayload =
+    status === "APPROVED" && me?.pixKey && me.pixCity
+      ? buildPixPayload({ key: me.pixKey, name: me.companyName ?? me.name, city: me.pixCity, amountCents: q.totalCents, txid: `FC${q.number}` })
+      : null;
 
   return (
     <div className="space-y-4 pb-6">
@@ -79,6 +86,10 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
       )}
 
       {q.notes && <p className="whitespace-pre-line text-sm text-muted-foreground">{q.notes}</p>}
+
+      {pixPayload && !q.paidAt && (
+        <CopyButton text={pixPayload} label="Copiar Pix copia e cola (para o cliente)" success="Pix copia e cola copiado" className="h-12 w-full" />
+      )}
 
       {q.status === "APPROVED" && (
         <MaintenanceReminder

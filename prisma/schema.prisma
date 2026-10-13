@@ -26,6 +26,9 @@ model User {
   waTemplate      String?
   emailDigest     Boolean   @default(true)
   termsAcceptedAt DateTime?
+  pixKey          String?
+  pixKeyType      String?
+  pixCity         String?
   logo            Bytes?
   logoType        String?
   logoUpdatedAt   DateTime?

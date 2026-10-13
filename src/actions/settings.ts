@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
 import { MAX_LOGO_BYTES, detectLogoType } from "@/lib/logo";
 import { waTemplateSchema } from "@/lib/validations/auth";
+import { pixSchema } from "@/lib/validations/pix";
 import { pushSubscriptionSchema, type PushSubscriptionInput } from "@/lib/validations/push";
 import type { ActionResult } from "@/types/action";
 
@@ -79,6 +80,25 @@ export async function savePushSubscription(input: PushSubscriptionInput, userAge
 export async function removePushSubscription(endpoint: string): Promise<ActionResult> {
   const userId = await requireUserId();
   await db.pushSubscription.deleteMany({ where: { endpoint, userId } });
+  revalidatePath("/ajustes");
+  return { ok: true, data: undefined };
+}
+
+export async function savePix(key: string, city: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const parsed = pixSchema.safeParse({ key, city });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
+  await db.user.update({
+    where: { id: userId },
+    data: { pixKey: parsed.data.key, pixKeyType: parsed.data.type, pixCity: parsed.data.city },
+  });
+  revalidatePath("/ajustes");
+  return { ok: true, data: undefined };
+}
+
+export async function removePix(): Promise<ActionResult> {
+  const userId = await requireUserId();
+  await db.user.update({ where: { id: userId }, data: { pixKey: null, pixKeyType: null, pixCity: null } });
   revalidatePath("/ajustes");
   return { ok: true, data: undefined };
 }

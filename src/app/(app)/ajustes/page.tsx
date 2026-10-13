@@ -3,6 +3,7 @@ import { requireUserId } from "@/lib/session";
 import { DEFAULT_WA_TEMPLATE } from "@/lib/wa-template";
 import { AccountSection } from "@/components/settings/account-section";
 import { LegalLinks } from "@/components/legal/legal-links";
+import { PixForm } from "@/components/settings/pix-form";
 import { PushToggle } from "@/components/settings/push-toggle";
 import { LogoForm } from "@/components/settings/logo-form";
 import { EmailDigestToggle } from "@/components/settings/email-digest-toggle";
@@ -14,13 +15,14 @@ export default async function AjustesPage() {
   const userId = await requireUserId();
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { name: true, companyName: true, waTemplate: true, emailDigest: true, logoUpdatedAt: true },
+    select: { name: true, companyName: true, waTemplate: true, emailDigest: true, logoUpdatedAt: true, pixKey: true, pixKeyType: true, pixCity: true },
   });
 
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold">Ajustes</h1>
       <LogoForm logoUrl={user.logoUpdatedAt ? `/api/logo?v=${user.logoUpdatedAt.getTime()}` : null} />
+      <PixForm initialKey={user.pixKey ?? ""} initialType={user.pixKeyType ?? ""} initialCity={user.pixCity ?? ""} />
       <PushToggle />
       <EmailDigestToggle initial={user.emailDigest} />
       <WaTemplateForm initial={user.waTemplate ?? DEFAULT_WA_TEMPLATE} sender={user.companyName ?? user.name} />

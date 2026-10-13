@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
+import { PixCard } from "@/components/quotes/pix-card";
+import { buildPixPayload } from "@/lib/pix";
 import { LegalLinks } from "@/components/legal/legal-links";
 import { RejectButton } from "@/components/quotes/reject-button";
 import { ApproveButton } from "@/components/quotes/approve-button";
@@ -47,7 +49,7 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
       validUntil: true,
       respondedAt: true,
       rejectReason: true,
-      user: { select: { name: true, companyName: true, logoUpdatedAt: true } },
+      user: { select: { name: true, companyName: true, logoUpdatedAt: true, pixKey: true, pixCity: true } },
       items: {
         orderBy: { position: "asc" },
         select: { id: true, description: true, unit: true, quantity: true, unitPriceCents: true, totalCents: true },
@@ -59,6 +61,19 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
   const expired = !!q.validUntil && q.validUntil < new Date();
   const status = q.status === "SENT" && expired ? "EXPIRED" : q.status;
   const canApprove = status === "SENT";
+  const pix =
+    status === "APPROVED" && q.user.pixKey && q.user.pixCity
+      ? {
+          key: q.user.pixKey,
+          payload: buildPixPayload({
+            key: q.user.pixKey,
+            name: q.user.companyName ?? q.user.name,
+            city: q.user.pixCity,
+            amountCents: q.totalCents,
+            txid: `FC${q.number}`,
+          }),
+        }
+      : null;
 
   return (
     <main className="mx-auto min-h-dvh max-w-lg space-y-4 px-4 py-6 pb-32">
@@ -134,6 +149,8 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
           Este orçamento está sendo atualizado. Aguarde o novo link do técnico.
         </p>
       )}
+
+      {pix && <PixCard payload={pix.payload} pixKey={pix.key} totalCents={q.totalCents} />}
 
       {status === "REJECTED" && (
         <p className="rounded-md border p-3 text-sm">Orçamento recusado{q.respondedAt ? ` em ${fmtDate.format(q.respondedAt)}` : ""}.</p>

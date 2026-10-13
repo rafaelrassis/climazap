@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { buildPixPayload } from "@/lib/pix";
 import { buildQuotePdf } from "@/lib/quote-pdf";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ publicI
       validUntil: true,
       createdAt: true,
       items: { orderBy: { position: "asc" }, select: { description: true, unit: true, quantity: true, unitPriceCents: true, totalCents: true } },
-      user: { select: { name: true, companyName: true, logo: true } },
+      user: { select: { name: true, companyName: true, logo: true, pixKey: true, pixCity: true } },
     },
   });
   if (!q || q.status === "DRAFT") return new Response("Not found", { status: 404 });
@@ -44,6 +45,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ publicI
     totalCents: q.totalCents,
     items: q.items.map((i) => ({ ...i, quantity: Number(i.quantity) })),
     logoPng: q.user.logo ? new Uint8Array(q.user.logo) : null,
+    pix:
+      q.status === "APPROVED" && q.user.pixKey && q.user.pixCity
+        ? {
+            key: q.user.pixKey,
+            payload: buildPixPayload({
+              key: q.user.pixKey,
+              name: q.user.companyName ?? q.user.name,
+              city: q.user.pixCity,
+              amountCents: q.totalCents,
+              txid: `FC${q.number}`,
+            }),
+          }
+        : null,
   });
 
   return new Response(new Uint8Array(bytes), {
