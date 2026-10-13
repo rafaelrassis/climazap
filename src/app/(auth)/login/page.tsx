@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,12 @@ export default function LoginPage() {
               </p>
             )}
             <SubmitButton />
+            <p className="text-center text-sm text-muted-foreground">
+              Sem conta?{" "}
+              <Link href="/cadastro" className="inline-flex min-h-11 items-center font-medium text-foreground underline">
+                Cadastre-se
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>

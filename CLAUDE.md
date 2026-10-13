@@ -48,7 +48,6 @@ Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tare
 Pronto: schema, seed (9 serviços padrão + usuário demo só fora de produção), actions de services/quotes (criar, enviar via WhatsApp, aprovar por publicId), Auth.js, login, listagem, `/orcamentos/novo`, página pública com modal de confirmação.
 
 ## Roadmap (nesta ordem)
-1. **`/cadastro`**: `registerAction` (Zod, e-mail único em lowercase, bcrypt cost 10, login automático) + página mobile-first + link no `/login`.
 2. **Detalhe `/orcamentos/[id]`**: itens, status, Reenviar no WhatsApp, Duplicar (`duplicateQuote`), Copiar link. A listagem hoje aponta para `/o/[publicId]`; trocar para o detalhe.
 3. **Recusar**: `rejectQuoteByPublicId` com motivo opcional (`Quote.rejectReason`) + modal de confirmação.
 4. **Expiração**: `SENT` vencidos -> `EXPIRED` (cron diário da Vercel ou checagem na leitura).
