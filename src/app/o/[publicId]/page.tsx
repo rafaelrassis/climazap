@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
+import { LegalLinks } from "@/components/legal/legal-links";
 import { RejectButton } from "@/components/quotes/reject-button";
 import { ApproveButton } from "@/components/quotes/approve-button";
 import { Badge } from "@/components/ui/badge";
@@ -126,6 +127,8 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
       {status === "REJECTED" && (
         <p className="rounded-md border p-3 text-sm">Orçamento recusado{q.respondedAt ? ` em ${fmtDate.format(q.respondedAt)}` : ""}.</p>
       )}
+
+      <LegalLinks />
 
       {canApprove && (
         <div className="fixed inset-x-0 bottom-0 border-t bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

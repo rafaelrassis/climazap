@@ -52,5 +52,6 @@ export const LIMITS = {
   resetIp: { limit: 10, windowSec: 60 * 60 },
   resetEmail: { limit: 3, windowSec: 60 * 60 },
   resetUse: { limit: 15, windowSec: 60 * 60 },
+  deleteAccount: { limit: 5, windowSec: 60 * 60 },
   publicAction: { limit: 20, windowSec: 10 * 60 },
 } as const;

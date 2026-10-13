@@ -17,20 +17,21 @@ enum QuoteStatus {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  passwordHash  String
-  phone         String?
-  companyName   String?
-  waTemplate    String?
-  emailDigest   Boolean   @default(true)
-  logo          Bytes?
-  logoType      String?
-  logoUpdatedAt DateTime?
-  quoteSeq      Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  passwordHash    String
+  phone           String?
+  companyName     String?
+  waTemplate      String?
+  emailDigest     Boolean   @default(true)
+  termsAcceptedAt DateTime?
+  logo            Bytes?
+  logoType        String?
+  logoUpdatedAt   DateTime?
+  quoteSeq        Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   services            Service[]
   quotes              Quote[]

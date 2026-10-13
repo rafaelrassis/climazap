@@ -31,6 +31,10 @@ for (const width of WIDTHS) {
     const paths = [
       "/login",
       "/cadastro",
+      "/esqueci-senha",
+      "/redefinir-senha",
+      "/privacidade",
+      "/termos",
       `/o/${t.publicId}`,
     ];
     const authed = [

@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { signIn, signOut } from "@/auth";
 import { db } from "@/lib/db";
 import { LIMITS, getClientIp, rateLimit, rateLimitInfo } from "@/lib/rate-limit";
+import { requireUserId } from "@/lib/session";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { createResetToken, hashToken, resetUrl } from "@/lib/password-reset";
 import { forgotPasswordSchema, registerSchema, resetPasswordSchema } from "@/lib/validations/auth";
@@ -66,6 +67,7 @@ export async function registerAction(
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
+    accept: formData.get("accept"),
   });
   if (!parsed.success) {
     return { error: "Dados inválidos", fieldErrors: parsed.error.flatten().fieldErrors, values };
@@ -74,7 +76,7 @@ export async function registerAction(
 
   try {
     await db.user.create({
-      data: { name, email, passwordHash: await bcrypt.hash(password, 10) },
+      data: { name, email, passwordHash: await bcrypt.hash(password, 10), termsAcceptedAt: new Date() },
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -161,4 +163,26 @@ export async function resetPassword(
 
   if (!ok) return { error: "Link inválido ou expirado. Peça um novo." };
   return { ok: true };
+}
+
+export type DeleteAccountState = { error?: string };
+
+// Exclusão definitiva da conta e de todos os dados (orçamentos, clientes, serviços, logo, assinaturas de push).
+// Exige a senha atual e tem rate limit.
+export async function deleteAccount(
+  _prev: DeleteAccountState | undefined,
+  formData: FormData,
+): Promise<DeleteAccountState | undefined> {
+  const userId = await requireUserId();
+  const rl = await rateLimit(`delete:${userId}`, LIMITS.deleteAccount.limit, LIMITS.deleteAccount.windowSec);
+  if (!rl.ok) return { error: "Muitas tentativas. Tente novamente mais tarde." };
+
+  const password = String(formData.get("password") ?? "");
+  const user = await db.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+  if (!user || !password || !(await bcrypt.compare(password, user.passwordHash))) {
+    return { error: "Senha incorreta" };
+  }
+
+  await db.user.delete({ where: { id: userId } }); // cascata remove todos os dados do técnico
+  await signOut({ redirectTo: "/login?conta=excluida" });
 }

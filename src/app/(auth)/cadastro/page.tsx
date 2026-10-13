@@ -46,6 +46,23 @@ export default function CadastroPage() {
               <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={6} className="h-12 text-base" />
               {fe?.password && <p className="text-sm text-destructive">{fe.password[0]}</p>}
             </div>
+            <div className="space-y-1">
+              <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm">
+                <input type="checkbox" name="accept" required className="mt-0.5 size-5 shrink-0" />
+                <span>
+                  Li e aceito os{" "}
+                  <Link href="/termos" target="_blank" className="font-medium underline">
+                    Termos de uso
+                  </Link>{" "}
+                  e a{" "}
+                  <Link href="/privacidade" target="_blank" className="font-medium underline">
+                    Política de Privacidade
+                  </Link>
+                  .
+                </span>
+              </label>
+              {fe?.accept && <p className="text-sm text-destructive">{fe.accept[0]}</p>}
+            </div>
             {state?.error && (
               <p role="alert" className="text-sm text-destructive">
                 {state.error}

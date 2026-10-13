@@ -7,6 +7,7 @@ test("criar, enviar, aprovar pelo link público e marcar como pago", async ({ pa
   await page.getByLabel("Nome").fill("Técnico E2E");
   await page.getByLabel("E-mail").fill("e2e@fechouclima.com.br");
   await page.getByLabel("Senha").fill("senha123");
+  await page.getByRole("checkbox", { name: /Li e aceito/ }).check();
   await page.getByRole("button", { name: "Criar conta" }).click();
   await expect(page).toHaveURL(/\/inicio$/);
 

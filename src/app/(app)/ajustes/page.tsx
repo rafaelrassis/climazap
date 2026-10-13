@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
 import { DEFAULT_WA_TEMPLATE } from "@/lib/wa-template";
+import { AccountSection } from "@/components/settings/account-section";
+import { LegalLinks } from "@/components/legal/legal-links";
 import { PushToggle } from "@/components/settings/push-toggle";
 import { LogoForm } from "@/components/settings/logo-form";
 import { EmailDigestToggle } from "@/components/settings/email-digest-toggle";
@@ -22,6 +24,8 @@ export default async function AjustesPage() {
       <PushToggle />
       <EmailDigestToggle initial={user.emailDigest} />
       <WaTemplateForm initial={user.waTemplate ?? DEFAULT_WA_TEMPLATE} sender={user.companyName ?? user.name} />
+      <AccountSection />
+      <LegalLinks />
     </div>
   );
 }

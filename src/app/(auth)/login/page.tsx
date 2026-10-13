@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { loginAction } from "@/actions/auth";
+import { LegalLinks } from "@/components/legal/legal-links";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,17 +20,29 @@ function SubmitButton() {
   );
 }
 
+function AccountDeletedNotice() {
+  const deleted = useSearchParams().get("conta") === "excluida";
+  return deleted ? (
+    <p role="status" className="mb-4 rounded-md border p-3 text-sm">
+      Sua conta e todos os seus dados foram excluídos.
+    </p>
+  ) : null;
+}
+
 export default function LoginPage() {
   const [state, action] = useActionState(loginAction, undefined);
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">FechouClima</CardTitle>
           <CardDescription>Entre para criar orçamentos</CardDescription>
         </CardHeader>
         <CardContent>
+          <Suspense>
+            <AccountDeletedNotice />
+          </Suspense>
           <form action={action} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
@@ -58,6 +72,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      <LegalLinks className="mt-2" />
     </main>
   );
 }

@@ -18,7 +18,7 @@ async function audit(page: Page, path: string) {
 
 test("acessibilidade: telas públicas", async ({ page }) => {
   const t = await seedTechnician("a11y-pub", "SENT");
-  for (const p of ["/login", "/cadastro", `/o/${t.publicId}`]) await audit(page, p);
+  for (const p of ["/login", "/cadastro", "/esqueci-senha", "/redefinir-senha", "/privacidade", "/termos", `/o/${t.publicId}`]) await audit(page, p);
 });
 
 test("acessibilidade: telas do técnico", async ({ page }) => {
