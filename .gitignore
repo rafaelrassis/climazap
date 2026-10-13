@@ -37,3 +37,7 @@ next-env.d.ts
 
 # env puro (contém DATABASE_URL)
 .env
+
+# testes
+/test-results/
+/playwright-report/
