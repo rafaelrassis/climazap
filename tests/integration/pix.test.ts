@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { createQuote } from "@/actions/quotes";
-import { removePix, savePix } from "@/actions/settings";
+import { removePix, saveBrandColor, savePix } from "@/actions/settings";
 import { GET as pdf } from "@/app/o/[publicId]/pdf/route";
 import { loginAs, makeUser, quoteInput, resetDb } from "../helpers/db";
 
@@ -79,5 +79,30 @@ describe("Pix no PDF do orçamento", () => {
   it.skipIf(!hasPdftotext)("não mostra Pix antes da aprovação nem sem Pix configurado", async () => {
     expect(await text((await approvedQuote(true, "SENT")).publicId)).not.toContain("Pix");
     expect(await text((await approvedQuote(false)).publicId)).not.toContain("Pix");
+  });
+});
+
+describe("cor da marca (ação)", () => {
+  it("salva cor da paleta, volta ao padrão com null e recusa o resto", async () => {
+    const u = await makeUser();
+    loginAs(u.id);
+    expect((await saveBrandColor("#1d4ed8")).ok).toBe(true);
+    expect((await db.user.findUniqueOrThrow({ where: { id: u.id } })).brandColor).toBe("#1d4ed8");
+    expect((await saveBrandColor("#0f172a")).ok).toBe(true); // padrão: guarda null
+    expect((await db.user.findUniqueOrThrow({ where: { id: u.id } })).brandColor).toBeNull();
+    for (const bad of ["#ffff00", "red", "#1d4ed8;x", ""]) expect((await saveBrandColor(bad)).ok, bad).toBe(false);
+    await saveBrandColor("#be123c");
+    expect((await saveBrandColor("<script>")).ok).toBe(false);
+    expect((await db.user.findUniqueOrThrow({ where: { id: u.id } })).brandColor).toBe("#be123c");
+  });
+
+  it("um técnico não altera a cor de outro", async () => {
+    const a = await makeUser();
+    const b = await makeUser();
+    loginAs(a.id);
+    await saveBrandColor("#0b6e4f");
+    loginAs(b.id);
+    await saveBrandColor("#c2410c");
+    expect((await db.user.findUniqueOrThrow({ where: { id: a.id } })).brandColor).toBe("#0b6e4f");
   });
 });

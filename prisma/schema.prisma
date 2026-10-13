@@ -29,6 +29,7 @@ model User {
   pixKey          String?
   pixKeyType      String?
   pixCity         String?
+  brandColor      String?
   logo            Bytes?
   logoType        String?
   logoUpdatedAt   DateTime?

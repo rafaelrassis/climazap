@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-export function ApproveButton({ publicId, totalLabel }: { publicId: string; totalLabel: string }) {
+export function ApproveButton({ publicId, totalLabel, color }: { publicId: string; totalLabel: string; color?: string }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -32,7 +32,9 @@ export function ApproveButton({ publicId, totalLabel }: { publicId: string; tota
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button className="h-12 w-full text-base">Aprovar orçamento</Button>
+        <Button className="h-12 w-full text-base text-white hover:opacity-90" style={color ? { backgroundColor: color } : undefined}>
+          Aprovar orçamento
+        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="max-w-[calc(100vw-2rem)] rounded-lg">
         <AlertDialogHeader>

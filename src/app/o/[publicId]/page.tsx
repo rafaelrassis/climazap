@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
+import { brandOrDefault } from "@/lib/brand";
 import { PixCard } from "@/components/quotes/pix-card";
 import { buildPixPayload } from "@/lib/pix";
 import { LegalLinks } from "@/components/legal/legal-links";
@@ -50,7 +51,7 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
       respondedAt: true,
       rejectReason: true,
       photos: { orderBy: { position: "asc" }, select: { id: true } },
-      user: { select: { name: true, companyName: true, logoUpdatedAt: true, pixKey: true, pixCity: true } },
+      user: { select: { name: true, companyName: true, logoUpdatedAt: true, pixKey: true, pixCity: true, brandColor: true } },
       items: {
         orderBy: { position: "asc" },
         select: { id: true, description: true, unit: true, quantity: true, unitPriceCents: true, totalCents: true },
@@ -62,6 +63,7 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
   const expired = !!q.validUntil && q.validUntil < new Date();
   const status = q.status === "SENT" && expired ? "EXPIRED" : q.status;
   const canApprove = status === "SENT";
+  const brand = brandOrDefault(q.user.brandColor);
   const pix =
     status === "APPROVED" && q.user.pixKey && q.user.pixCity
       ? {
@@ -87,7 +89,9 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
             className="h-14 w-auto max-w-[60%] object-contain"
           />
         )}
-        <p className="text-sm text-muted-foreground">{q.user.companyName ?? q.user.name}</p>
+        <p className="text-sm font-medium" style={{ color: brand }}>
+          {q.user.companyName ?? q.user.name}
+        </p>
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-xl font-semibold">Orçamento #{q.number}</h1>
           <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
@@ -183,7 +187,7 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
       {canApprove && (
         <div className="fixed inset-x-0 bottom-0 border-t bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-lg space-y-1">
-            <ApproveButton publicId={publicId} totalLabel={formatBRL(q.totalCents)} />
+            <ApproveButton publicId={publicId} totalLabel={formatBRL(q.totalCents)} color={brand} />
             <RejectButton publicId={publicId} />
           </div>
         </div>

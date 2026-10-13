@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
+import { DEFAULT_BRAND, isBrandColor } from "@/lib/brand";
 import { MAX_LOGO_BYTES, detectLogoType } from "@/lib/logo";
 import { waTemplateSchema } from "@/lib/validations/auth";
 import { pixSchema } from "@/lib/validations/pix";
@@ -99,6 +100,14 @@ export async function savePix(key: string, city: string): Promise<ActionResult> 
 export async function removePix(): Promise<ActionResult> {
   const userId = await requireUserId();
   await db.user.update({ where: { id: userId }, data: { pixKey: null, pixKeyType: null, pixCity: null } });
+  revalidatePath("/ajustes");
+  return { ok: true, data: undefined };
+}
+
+export async function saveBrandColor(hex: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  if (!isBrandColor(hex)) return { ok: false, error: "Cor inválida" };
+  await db.user.update({ where: { id: userId }, data: { brandColor: hex === DEFAULT_BRAND ? null : hex } });
   revalidatePath("/ajustes");
   return { ok: true, data: undefined };
 }

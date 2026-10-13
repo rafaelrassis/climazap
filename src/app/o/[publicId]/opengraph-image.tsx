@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { db } from "@/lib/db";
+import { brandOrDefault } from "@/lib/brand";
 import { pngSize } from "@/lib/logo";
 import { formatBRL } from "@/lib/money";
 
@@ -18,11 +19,12 @@ export default async function OgImage({ params }: { params: Promise<{ publicId: 
           number: true,
           customerName: true,
           totalCents: true,
-          user: { select: { name: true, companyName: true, logo: true, logoType: true } },
+          user: { select: { name: true, companyName: true, logo: true, logoType: true, brandColor: true } },
         },
       })
     : null;
 
+  const brand = brandOrDefault(q?.user.brandColor);
   const sender = q ? (q.user.companyName ?? q.user.name) : "FechouClima";
   const dims = q?.user.logo ? pngSize(q.user.logo) : null;
   const LOGO_H = 96;
@@ -41,12 +43,12 @@ export default async function OgImage({ params }: { params: Promise<{ publicId: 
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#0f172a",
+          background: brand,
           color: "#ffffff",
           padding: 72,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 24, fontSize: 40, color: "#7dd3fc" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 24, fontSize: 40, color: "#ffffff" }}>
           {logoSrc && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoSrc} alt="" width={logoW} height={LOGO_H} style={{ width: logoW, height: LOGO_H, objectFit: "contain", borderRadius: 12, background: "#ffffff" }} />
@@ -55,7 +57,7 @@ export default async function OgImage({ params }: { params: Promise<{ publicId: 
         </div>
         {q ? (
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", fontSize: 56, color: "#cbd5e1" }}>
+            <div style={{ display: "flex", fontSize: 56, color: "#f1f5f9" }}>
               {`Orçamento #${q.number} para ${q.customerName}`.slice(0, 60)}
             </div>
             <div style={{ display: "flex", fontSize: 136, fontWeight: 700, marginTop: 16 }}>
@@ -65,7 +67,7 @@ export default async function OgImage({ params }: { params: Promise<{ publicId: 
         ) : (
           <div style={{ display: "flex", fontSize: 72 }}>Orçamento não encontrado</div>
         )}
-        <div style={{ display: "flex", fontSize: 36, color: "#94a3b8" }}>Toque no link para ver e aprovar</div>
+        <div style={{ display: "flex", fontSize: 36, color: "#e2e8f0" }}>Toque no link para ver e aprovar</div>
       </div>
     ),
     size,

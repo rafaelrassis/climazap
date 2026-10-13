@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { brandOrDefault } from "@/lib/brand";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { buildPixPayload } from "@/lib/pix";
 import { buildQuotePdf } from "@/lib/quote-pdf";
@@ -27,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ publicI
       validUntil: true,
       createdAt: true,
       items: { orderBy: { position: "asc" }, select: { description: true, unit: true, quantity: true, unitPriceCents: true, totalCents: true } },
-      user: { select: { name: true, companyName: true, logo: true, pixKey: true, pixCity: true } },
+      user: { select: { name: true, companyName: true, logo: true, pixKey: true, pixCity: true, brandColor: true } },
     },
   });
   if (!q || q.status === "DRAFT") return new Response("Not found", { status: 404 });
@@ -44,6 +45,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ publicI
     discountCents: q.discountCents,
     totalCents: q.totalCents,
     items: q.items.map((i) => ({ ...i, quantity: Number(i.quantity) })),
+    brandColor: brandOrDefault(q.user.brandColor),
     logoPng: q.user.logo ? new Uint8Array(q.user.logo) : null,
     pix:
       q.status === "APPROVED" && q.user.pixKey && q.user.pixCity
