@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { listServices, removeService, restoreDefaultService, updateService } from "@/actions/services";
-import { isRateLimited, rateLimit } from "@/lib/rate-limit";
+import { isRateLimited, rateLimit, rateLimitInfo } from "@/lib/rate-limit";
 import { loginAs, makeSystemService, makeUser, resetDb } from "../helpers/db";
 
 beforeEach(resetDb);
@@ -62,6 +62,16 @@ describe("rate limit", () => {
     expect(results).toEqual([true, true, true, false]);
     expect(await isRateLimited("k1", 3)).toBe(true);
     expect((await db.rateLimit.findUniqueOrThrow({ where: { key: "k1" } })).count).toBe(4);
+  });
+
+  it("rateLimitInfo informa o tempo de espera sem consumir", async () => {
+    expect(await rateLimitInfo("none", 3)).toEqual({ limited: false, retryAfterSec: 0 });
+    for (let i = 0; i < 4; i++) await rateLimit("info", 3, 600);
+    const info = await rateLimitInfo("info", 3);
+    expect(info.limited).toBe(true);
+    expect(info.retryAfterSec).toBeGreaterThan(590);
+    expect(info.retryAfterSec).toBeLessThanOrEqual(600);
+    expect((await db.rateLimit.findUniqueOrThrow({ where: { key: "info" } })).count).toBe(4);
   });
 
   it("chaves são independentes", async () => {

@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { signIn, signOut } from "@/auth";
 import { db } from "@/lib/db";
-import { LIMITS, getClientIp, isRateLimited, rateLimit } from "@/lib/rate-limit";
+import { LIMITS, getClientIp, rateLimit, rateLimitInfo } from "@/lib/rate-limit";
 import { registerSchema } from "@/lib/validations/auth";
 
 export type RegisterState = {
@@ -27,10 +27,14 @@ export async function loginAction(
     if (e instanceof AuthError) {
       const ip = await getClientIp();
       const email = String(formData.get("email") ?? "").toLowerCase();
-      const blocked =
-        (await isRateLimited(`login:${ip}:${email}`, LIMITS.loginEmail.limit)) ||
-        (await isRateLimited(`login:${ip}`, LIMITS.loginIp.limit));
-      return blocked ? "Muitas tentativas. Tente novamente em alguns minutos." : "E-mail ou senha inválidos";
+      const [byEmail, byIp] = await Promise.all([
+        rateLimitInfo(`login:${ip}:${email}`, LIMITS.loginEmail.limit),
+        rateLimitInfo(`login:${ip}`, LIMITS.loginIp.limit),
+      ]);
+      const wait = Math.max(byEmail.limited ? byEmail.retryAfterSec : 0, byIp.limited ? byIp.retryAfterSec : 0);
+      return wait > 0
+        ? `Muitas tentativas. Tente novamente em ${Math.ceil(wait / 60)} min.`
+        : "E-mail ou senha inválidos";
     }
     throw e; // NEXT_REDIRECT
   }

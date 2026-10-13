@@ -28,10 +28,21 @@ export async function rateLimit(
   return { ok: count <= limit, retryAfterSec: Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000)) };
 }
 
-// Leitura sem consumir (para escolher a mensagem de erro)
-export async function isRateLimited(key: string, limit: number): Promise<boolean> {
+// Leitura sem consumir (para escolher a mensagem de erro e o tempo de espera)
+export async function rateLimitInfo(
+  key: string,
+  limit: number,
+): Promise<{ limited: boolean; retryAfterSec: number }> {
   const row = await db.rateLimit.findUnique({ where: { key } });
-  return !!row && row.resetAt > new Date() && row.count > limit;
+  const active = !!row && row.resetAt > new Date();
+  return {
+    limited: active && row!.count > limit,
+    retryAfterSec: active ? Math.max(1, Math.ceil((row!.resetAt.getTime() - Date.now()) / 1000)) : 0,
+  };
+}
+
+export async function isRateLimited(key: string, limit: number): Promise<boolean> {
+  return (await rateLimitInfo(key, limit)).limited;
 }
 
 export const LIMITS = {

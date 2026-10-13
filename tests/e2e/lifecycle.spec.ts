@@ -14,7 +14,7 @@ test("cliente recusa com motivo pelo link público e o técnico vê o motivo", a
   await client.getByRole("button", { name: "Recusar" }).click();
   await client.getByLabel("Motivo da recusa").fill("Achei o valor alto");
   await client.getByRole("button", { name: "Sim, recusar" }).click();
-  await expect(client.getByText(/Orçamento recusado/)).toBeVisible();
+  await expect(client.getByText(/Orçamento recusado em/)).toBeVisible();
   await expect(client.getByRole("button", { name: "Aprovar orçamento" })).toHaveCount(0);
   await ctx.close();
 
