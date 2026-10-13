@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { formatBRL } from "@/lib/money";
+import { sendPushToUser } from "@/lib/push";
 
 // Avisa o técnico por e-mail quando o cliente responde. Nunca lança: falha de e-mail não pode quebrar a resposta do cliente.
 export async function notifyQuoteResponse(publicId: string, outcome: "APPROVED" | "REJECTED"): Promise<void> {
@@ -13,6 +14,7 @@ export async function notifyQuoteResponse(publicId: string, outcome: "APPROVED" 
         customerName: true,
         totalCents: true,
         rejectReason: true,
+        userId: true,
         user: { select: { email: true, name: true } },
       },
     });
@@ -43,7 +45,15 @@ export async function notifyQuoteResponse(publicId: string, outcome: "APPROVED" 
       (reason ? `<p>${escapeHtml(reason)}</p>` : "") +
       `<p><a href="${escapeHtml(link)}">Abrir orçamento</a></p>`;
 
-    await sendEmail({ to: q.user.email, subject, html, text });
+    await Promise.all([
+      sendEmail({ to: q.user.email, subject, html, text }),
+      sendPushToUser(q.userId, {
+        title: subject,
+        body: `${total}${reason ? ` · ${reason}` : ""}`,
+        url: `/orcamentos/${q.id}`,
+        tag: `quote-${q.id}`,
+      }),
+    ]);
   } catch (e) {
     console.error("[notify] falha", e);
   }

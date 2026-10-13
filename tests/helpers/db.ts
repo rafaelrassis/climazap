@@ -3,7 +3,7 @@ import { session } from "./setup";
 
 export async function resetDb() {
   await db.$executeRawUnsafe(
-    'TRUNCATE "RateLimit", "QuoteItem", "Quote", "Customer", "Service", "User" RESTART IDENTITY CASCADE',
+    'TRUNCATE "RateLimit", "PushSubscription", "QuoteItem", "Quote", "Customer", "Service", "User" RESTART IDENTITY CASCADE',
   );
   session.userId = "";
 }

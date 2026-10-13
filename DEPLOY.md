@@ -18,6 +18,9 @@
 | `RESEND_API_KEY` | chave do Resend |
 | `EMAIL_FROM` | `FechouClima <avisos@fechouclima.com.br>` (domínio verificado no Resend: SPF + DKIM) |
 | `CRON_SECRET` | `openssl rand -hex 32` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | chave pública VAPID (`npx web-push generate-vapid-keys`) |
+| `VAPID_PRIVATE_KEY` | chave privada VAPID (gerada junto; nunca commitar) |
+| `VAPID_SUBJECT` | `mailto:contato@fechouclima.com.br` |
 
 Fora da Vercel, defina também `AUTH_TRUST_HOST=true`.
 
@@ -27,6 +30,7 @@ Adicione `fechouclima.com.br` ao projeto na Vercel e aponte o DNS como ela indic
 ## 4. Conferir depois do deploy
 - `https://fechouclima.com.br/api/health` -> `{"ok":true}`
 - Criar conta, criar orçamento, abrir o link público em aba anônima e aprovar.
+- `/ajustes` > "Avisos no celular" > Ativar (no iPhone, instale o app na tela de início antes). Aprove um orçamento em outra aba e confira a notificação.
 - Segunda-feira seguinte: logs do cron `/api/cron/lembretes` na Vercel.
 
 ## Notas

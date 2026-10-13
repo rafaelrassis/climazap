@@ -24,10 +24,11 @@ src/auth.ts             Auth.js (credentials) + rate limit no authorize
 src/auth.config.ts      config edge-safe (usada no middleware); PUBLIC_PREFIXES
 src/middleware.ts       protege rotas; públicas: /login /cadastro /o/ /api/health /icons /manifest
 src/actions/            auth, services, quotes, customers, settings (só funções de ação aqui: exports de "use server" viram endpoints)
-src/lib/                unsubscribe (link assinado), reminders (resumo semanal), db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
+src/lib/                push (web push), unsubscribe (link assinado), reminders (resumo semanal), db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
 src/app/(auth)          login, cadastro
 src/app/(app)           inicio (dashboard), orcamentos (lista, novo, [id], [id]/editar), servicos, clientes (lista, [id]), ajustes
 src/app/o/[publicId]    página pública + aprovar/recusar + opengraph-image
+public/sw.js            service worker (só push)
 src/components/         bottom-nav, money-input, logout-button, quotes/, services/, settings/
 ```
 Nota: a rota pública é `/o/[publicId]` (o brief do projeto cita `/p/[token]`; manter `/o/` ou renomear em um commit só, atualizando `PUBLIC_PREFIXES` em `auth.config.ts` e a URL em `sendQuoteViaWhatsApp`).
@@ -39,7 +40,7 @@ npx prisma migrate dev --name <nome>
 npx prisma db seed
 npm run lint && npx tsc --noEmit
 npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, padrão postgresql://postgres:postgres@localhost:5432/climazap_test). O banco precisa ter "test" no nome: o setup apaga o schema.
-npm run test:e2e        # 20 testes Playwright (fluxos, layout a 320-430px, acessibilidade axe) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
+npm run test:e2e        # 22 testes Playwright (fluxos, layout a 320-430px, acessibilidade axe, PWA) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
 ```
 
 ## Deploy
@@ -55,11 +56,10 @@ Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nun
 Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tarefa: trazer opiniões/riscos curtos e propor ideias novas. Pode discordar. Avisos de segurança/perda de dados podem ser mais longos.
 
 ## Estado atual
-Roadmap 1-14 concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA (sem service worker), navegação inferior.
+Roadmap concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA com service worker só para push (sem cache offline: app autenticado precisa de dado fresco), web push de aprovação/recusa (`web-push`, VAPID), descadastro do resumo por link assinado, editar/excluir cliente e clientes dormentes, navegação inferior.
 
-## Roadmap (nesta ordem)
-5. **Web push** ao técnico na aprovação (PWA).
-6. **Service worker** só se houver necessidade real de offline.
+## Roadmap
+Concluído. Ideias para depois: cor da marca do técnico na página pública/OG image; plano pago (limites, cobrança); logo em armazenamento de arquivos se o tráfego crescer; CSP com nonce; Next 16/Tailwind 4/Prisma 7.
 
 ## Riscos conhecidos
 - `next-auth@beta` (v5): versão fixada em 5.0.0-beta.32; atualizar com cuidado.
