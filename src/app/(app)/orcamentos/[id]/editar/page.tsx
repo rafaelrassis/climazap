@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { listCustomers } from "@/actions/customers";
 import { listServices } from "@/actions/services";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
@@ -8,12 +9,13 @@ const VALID_OPTIONS = [3, 7, 15, 30];
 
 export default async function EditarOrcamentoPage({ params }: { params: { id: string } }) {
   const userId = await requireUserId();
-  const [q, services] = await Promise.all([
+  const [q, services, customers] = await Promise.all([
     db.quote.findFirst({
       where: { id: params.id, userId, status: { not: "APPROVED" } },
       include: { items: { orderBy: { position: "asc" } } },
     }),
     listServices(),
+    listCustomers(),
   ]);
   if (!q) notFound();
 
@@ -31,6 +33,7 @@ export default async function EditarOrcamentoPage({ params }: { params: { id: st
       )}
       <QuoteForm
         services={services}
+        customers={customers}
         initial={{
           quoteId: q.id,
           customerName: q.customerName,

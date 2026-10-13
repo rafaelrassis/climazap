@@ -34,6 +34,8 @@ export type QuoteFormInitial = {
   items: { serviceId: string | null; description: string; unit: string; quantity: number; unitPriceCents: number }[];
 };
 
+type CustomerOption = { id: string; name: string; phone: string; address: string | null };
+
 type Line = {
   key: string;
   serviceId: string | null;
@@ -57,7 +59,15 @@ function maskPhone(v: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-export function QuoteForm({ services, initial }: { services: ServiceOption[]; initial?: QuoteFormInitial }) {
+export function QuoteForm({
+  services,
+  customers,
+  initial,
+}: {
+  services: ServiceOption[];
+  customers: CustomerOption[];
+  initial?: QuoteFormInitial;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -77,6 +87,23 @@ export function QuoteForm({ services, initial }: { services: ServiceOption[]; in
   );
   const [discountCents, setDiscountCents] = useState(initial?.discountCents ?? 0);
   const [validDays, setValidDays] = useState(String(initial?.validDays ?? 7));
+
+  const [picked, setPicked] = useState(!!initial);
+  const suggestions = useMemo(() => {
+    const q = customerName.trim().toLowerCase();
+    if (picked || q.length < 2) return [];
+    const digits = q.replace(/\D/g, "");
+    return customers
+      .filter((c) => c.name.toLowerCase().includes(q) || (digits.length >= 3 && c.phone.includes(digits)))
+      .slice(0, 5);
+  }, [customers, customerName, picked]);
+
+  function pickCustomer(c: CustomerOption) {
+    setCustomerName(c.name);
+    setPhone(maskPhone(c.phone));
+    setAddress(c.address ?? "");
+    setPicked(true);
+  }
 
   const { subtotal, total } = useMemo(() => {
     const subtotal = lines.reduce(
@@ -177,8 +204,27 @@ export function QuoteForm({ services, initial }: { services: ServiceOption[]; in
           autoComplete="off"
           className="h-12 text-base"
           value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
+          onChange={(e) => {
+            setCustomerName(e.target.value);
+            setPicked(false);
+          }}
         />
+        {suggestions.length > 0 && (
+          <ul className="divide-y rounded-md border bg-background">
+            {suggestions.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full flex-col items-start justify-center px-3 py-1 text-left"
+                  onClick={() => pickCustomer(c)}
+                >
+                  <span className="text-sm font-medium">{c.name}</span>
+                  <span className="text-xs text-muted-foreground">{maskPhone(c.phone)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <Input
           aria-label="WhatsApp do cliente"
           placeholder="(11) 99999-9999"

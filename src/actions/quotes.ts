@@ -76,6 +76,23 @@ async function prepareQuote(
   };
 }
 
+type CustomerData = { customerName: string; customerPhone: string; customerAddress?: string };
+
+// Cria/atualiza o cliente pela chave (técnico, telefone). Mantém o endereço anterior se o novo vier vazio.
+async function upsertCustomer(
+  tx: Pick<typeof db, "customer">,
+  userId: string,
+  c: CustomerData,
+): Promise<string> {
+  const row = await tx.customer.upsert({
+    where: { userId_phone: { userId, phone: c.customerPhone } },
+    create: { userId, name: c.customerName, phone: c.customerPhone, address: c.customerAddress ?? null },
+    update: { name: c.customerName, ...(c.customerAddress ? { address: c.customerAddress } : {}) },
+    select: { id: true },
+  });
+  return row.id;
+}
+
 export async function createQuote(
   input: CreateQuoteInput,
 ): Promise<ActionResult<{ id: string; publicId: string; number: number; totalCents: number }>> {
@@ -96,9 +113,11 @@ export async function createQuote(
       data: { quoteSeq: { increment: 1 } },
       select: { quoteSeq: true },
     });
+    const customerId = await upsertCustomer(tx, userId, data);
     return tx.quote.create({
       data: {
         userId,
+        customerId,
         number: quoteSeq,
         customerName: data.customerName,
         customerPhone: data.customerPhone,
@@ -135,10 +154,12 @@ export async function updateQuote(
   const { items, totalCents, validUntil } = prep.prepared;
 
   const updated = await db.$transaction(async (tx) => {
+    const customerId = await upsertCustomer(tx, userId, data);
     // updateMany condicional: se o cliente aprovou no meio da edição, count = 0
     const { count } = await tx.quote.updateMany({
       where: { id: quoteId, userId, status: { not: "APPROVED" } },
       data: {
+        customerId,
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         customerAddress: data.customerAddress ?? null,

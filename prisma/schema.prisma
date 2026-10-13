@@ -27,8 +27,9 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  services Service[]
-  quotes   Quote[]
+  services  Service[]
+  quotes    Quote[]
+  customers Customer[]
 }
 
 // userId null = serviço padrão do sistema (seed); preenchido = catálogo do usuário
@@ -59,6 +60,7 @@ model Quote {
   publicId        String      @unique @default(uuid())
   number          Int
   userId          String
+  customerId      String?
   customerName    String
   customerPhone   String
   customerAddress String?
@@ -74,8 +76,9 @@ model Quote {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items QuoteItem[]
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    QuoteItem[]
 
   @@unique([userId, number])
   @@index([userId, status, createdAt])
@@ -105,4 +108,21 @@ model RateLimit {
   resetAt DateTime
 
   @@index([resetAt])
+}
+
+// Cliente do técnico (autocomplete). O orçamento mantém seu próprio snapshot de nome/telefone/endereço.
+model Customer {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  phone     String // só dígitos
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quotes Quote[]
+
+  @@unique([userId, phone])
+  @@index([userId, updatedAt])
 }
