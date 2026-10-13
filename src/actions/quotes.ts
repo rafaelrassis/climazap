@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { notifyQuoteResponse } from "@/lib/notify";
 import { LIMITS, getClientIp, rateLimit } from "@/lib/rate-limit";
 import { requireUserId } from "@/lib/session";
 import { calcLineCents, formatBRL } from "@/lib/money";
@@ -303,6 +304,7 @@ export async function rejectQuoteByPublicId(publicId: string, reason?: string): 
 
   revalidatePath(`/o/${publicId}`);
   revalidatePath("/orcamentos");
+  await notifyQuoteResponse(publicId, "REJECTED");
   return { ok: true, data: undefined };
 }
 
