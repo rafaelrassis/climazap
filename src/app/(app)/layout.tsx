@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { logoutAction } from "@/actions/auth";
-import { Button } from "@/components/ui/button";
+import { LogoutButton } from "@/components/logout-button";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -19,11 +18,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/servicos" className="inline-flex min-h-11 items-center px-3 text-sm">
               Serviços
             </Link>
-            <form action={logoutAction}>
-              <Button variant="ghost" size="sm" type="submit" className="min-h-11">
-                Sair
-              </Button>
-            </form>
+            <Link href="/ajustes" className="inline-flex min-h-11 items-center px-3 text-sm">
+              Ajustes
+            </Link>
+            <LogoutButton />
           </nav>
         </div>
       </header>

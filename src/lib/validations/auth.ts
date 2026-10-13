@@ -5,3 +5,12 @@ export const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email("E-mail inválido").max(160),
   password: z.string().min(6, "Mínimo de 6 caracteres").max(72, "Máximo de 72 caracteres"),
 });
+
+export const waTemplateSchema = z.object({
+  template: z
+    .string()
+    .trim()
+    .min(10, "Mensagem muito curta")
+    .max(600, "Máximo de 600 caracteres")
+    .refine((v) => v.includes("{link}"), "A mensagem precisa conter {link}"),
+});

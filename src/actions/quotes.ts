@@ -8,6 +8,7 @@ import { LIMITS, getClientIp, rateLimit } from "@/lib/rate-limit";
 import { requireUserId } from "@/lib/session";
 import { calcLineCents, formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { DEFAULT_WA_TEMPLATE, renderWaTemplate } from "@/lib/wa-template";
 import { createQuoteSchema, type CreateQuoteInput } from "@/lib/validations/quote";
 import type { ActionResult } from "@/types/action";
 
@@ -194,7 +195,7 @@ export async function sendQuoteViaWhatsApp(quoteId: string): Promise<ActionResul
 
   const quote = await db.quote.findFirst({
     where: { id: quoteId, userId },
-    include: { user: { select: { name: true, companyName: true } } },
+    include: { user: { select: { name: true, companyName: true, waTemplate: true } } },
   });
   if (!quote) return { ok: false, error: "Orçamento não encontrado" };
 
@@ -203,9 +204,13 @@ export async function sendQuoteViaWhatsApp(quoteId: string): Promise<ActionResul
 
   const publicUrl = `${baseUrl.replace(/\/$/, "")}/o/${quote.publicId}`;
   const sender = quote.user.companyName ?? quote.user.name;
-  const message =
-    `Olá, ${quote.customerName}! Segue o orçamento #${quote.number} de ${sender} ` +
-    `no valor de ${formatBRL(quote.totalCents)}.\n\nVeja os detalhes e aprove aqui: ${publicUrl}`;
+  const message = renderWaTemplate(quote.user.waTemplate ?? DEFAULT_WA_TEMPLATE, {
+    cliente: quote.customerName,
+    valor: formatBRL(quote.totalCents),
+    link: publicUrl,
+    numero: quote.number,
+    tecnico: sender,
+  });
 
   if (quote.status === "DRAFT") {
     await db.quote.update({
