@@ -6,6 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: { default: "FechouClima", template: "%s | FechouClima" },
   description: "Orçamentos de climatização em 60 segundos, direto no WhatsApp.",
 };

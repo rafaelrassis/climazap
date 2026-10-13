@@ -21,6 +21,10 @@ export function WaTemplateForm({ initial, sender }: { initial: string; sender: s
     tecnico: sender,
   });
 
+  const unknown = Array.from(new Set(text.match(/\{[^{}\s]*\}/g) ?? [])).filter(
+    (v) => !(WA_PLACEHOLDERS as readonly string[]).includes(v),
+  );
+
   function save() {
     startTransition(async () => {
       const res = await saveWaTemplate(text);
@@ -64,6 +68,12 @@ export function WaTemplateForm({ initial, sender }: { initial: string; sender: s
         </p>
       </div>
 
+      {unknown.length > 0 && (
+        <p role="alert" className="text-sm text-destructive">
+          Variável desconhecida: {unknown.join(" ")}. Ela iria literal para o cliente.
+        </p>
+      )}
+
       <Card>
         <CardContent className="p-3">
           <p className="mb-1 text-xs text-muted-foreground">Prévia</p>
@@ -71,7 +81,7 @@ export function WaTemplateForm({ initial, sender }: { initial: string; sender: s
         </CardContent>
       </Card>
 
-      <Button className="h-12 w-full text-base" onClick={save} disabled={pending}>
+      <Button className="h-12 w-full text-base" onClick={save} disabled={pending || unknown.length > 0}>
         {pending ? "Salvando..." : "Salvar mensagem"}
       </Button>
       <Button variant="ghost" className="h-11 w-full text-muted-foreground" onClick={reset} disabled={pending}>

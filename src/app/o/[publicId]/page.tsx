@@ -9,7 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const revalidate = 300;
-export const metadata: Metadata = { title: "Orçamento", robots: { index: false, follow: false } };
+const baseMeta: Metadata = { title: "Orçamento", robots: { index: false, follow: false } };
+
+export async function generateMetadata({ params }: { params: { publicId: string } }): Promise<Metadata> {
+  if (!/^[0-9a-f-]{36}$/i.test(params.publicId)) return baseMeta;
+  const q = await db.quote.findUnique({
+    where: { publicId: params.publicId },
+    select: { number: true, totalCents: true, user: { select: { name: true, companyName: true } } },
+  });
+  if (!q) return baseMeta;
+  const sender = q.user.companyName ?? q.user.name;
+  return {
+    ...baseMeta,
+    title: `Orçamento #${q.number} · ${sender}`,
+    description: `Orçamento de ${formatBRL(q.totalCents)}. Veja os detalhes e aprove com 1 toque.`,
+  };
+}
 
 const fmtDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
 
