@@ -12,10 +12,11 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const fmtDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
 
-export default async function ClienteDetailPage({ params }: { params: { id: string } }) {
+export default async function ClienteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const userId = await requireUserId();
   const customer = await db.customer.findFirst({
-    where: { id: params.id, userId },
+    where: { id, userId },
     include: {
       quotes: {
         orderBy: { createdAt: "desc" },

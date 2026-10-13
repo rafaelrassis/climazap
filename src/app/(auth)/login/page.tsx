@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [error, action] = useFormState(loginAction, undefined);
+  const [error, action] = useActionState(loginAction, undefined);
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4">

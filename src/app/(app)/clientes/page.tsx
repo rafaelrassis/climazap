@@ -15,9 +15,9 @@ function maskPhone(d: string) {
   return d;
 }
 
-export default async function ClientesPage({ searchParams }: { searchParams: { q?: string } }) {
+export default async function ClientesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const userId = await requireUserId();
-  const q = (searchParams.q ?? "").trim().slice(0, 60);
+  const q = ((await searchParams).q ?? "").trim().slice(0, 60);
   const digits = q.replace(/\D/g, "");
 
   const [customers, stats] = await Promise.all([

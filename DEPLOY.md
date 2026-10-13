@@ -31,4 +31,4 @@ Adicione `fechouclima.com.br` ao projeto na Vercel e aponte o DNS como ela indic
 
 ## Notas
 - `postinstall` roda `prisma generate`; `migrate deploy` **não** roda no build (de propósito: migration é passo consciente).
-- Next 14.2.35 é a última 14.x e tem avisos de DoS no `npm audit` corrigidos só no Next 15/16. Planeje a migração (testes unitários, de integração e E2E servem de rede de segurança).
+- Next 15.5.27 (inclui as correções de segurança até 15.5.24). O `npm audit` restante é de ferramentas de build/dev, sem correção sem trocar de versão major (Next 16, Tailwind 4, Prisma 7); reavalie a cada trimestre.

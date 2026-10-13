@@ -3,10 +3,11 @@ import { listServices } from "@/actions/services";
 import { requireUserId } from "@/lib/session";
 import { QuoteForm } from "@/components/quotes/quote-form";
 
-export default async function NovoOrcamentoPage({ searchParams }: { searchParams: { cliente?: string } }) {
+export default async function NovoOrcamentoPage({ searchParams }: { searchParams: Promise<{ cliente?: string }> }) {
+  const { cliente } = await searchParams;
   const userId = await requireUserId();
   const [services, customers] = await Promise.all([listServices(), listCustomers()]);
-  const prefill = searchParams.cliente ? customers.find((c) => c.id === searchParams.cliente) : undefined;
+  const prefill = cliente ? customers.find((c) => c.id === cliente) : undefined;
 
   return (
     <>

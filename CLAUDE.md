@@ -5,7 +5,7 @@ Micro-SaaS B2B mobile-first (PWA) para técnicos de ar-condicionado e refrigera�
 Domínio: fechouclima.com.br (repo/pacote continuam `climazap`).
 
 ## Stack
-Next.js 14 (App Router) · TypeScript · Tailwind · shadcn/ui · PostgreSQL · Prisma 6 · Auth.js v5 (credentials + bcryptjs) · Zod · npm · Ubuntu.
+Next.js 15 (App Router, React 19) · TypeScript · Tailwind · shadcn/ui · PostgreSQL · Prisma 6 · Auth.js v5 (credentials + bcryptjs) · Zod · npm · Ubuntu.
 
 ## Princípios (obrigatórios)
 - **Mobile-first rigoroso**: tudo funciona de 360px a 420px. Inputs `h-11`/`h-12` com `text-base` (evita zoom no iOS). Alvos de toque >= 44px. `min-h-dvh` e `env(safe-area-inset-bottom)` em barras fixas.
@@ -64,7 +64,7 @@ Roadmap 1-14 concluído: cadastro, detalhe/duplicar/editar/renovar/contrapropost
 ## Riscos conhecidos
 - `next-auth@beta` (v5): versão fixada em 5.0.0-beta.32; atualizar com cuidado.
 - Prisma fixado em 6.19.3 (7.x muda config/generator).
-- Next 14.2.35 com avisos de DoS no `npm audit` (correção só no Next 15/16): migrar em tarefa própria.
+- Next 15.5.27 (patch de segurança até 15.5.24+). `npm audit` ainda lista só ferramentas de build/dev (postcss embutido no Next processa apenas o nosso CSS, tailwind/braces/chokidar, CLI do prisma, playwright); sem correção sem salto de major (Next 16/Tailwind 4/Prisma 7). `params`, `searchParams` e `headers()` são assíncronos: sempre `await`.
 - Sem CSP (Next usa scripts inline; exigiria nonce). Demais cabeçalhos de segurança em `next.config.mjs`.
 - `sendQuoteViaWhatsApp` marca `SENT` antes do envio real; aceitável porque a aprovação exige `SENT`.
 - Seed nunca deve criar o usuário demo em produção.

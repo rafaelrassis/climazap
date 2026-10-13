@@ -11,10 +11,11 @@ import { Card, CardContent } from "@/components/ui/card";
 export const revalidate = 300;
 const baseMeta: Metadata = { title: "Orçamento", robots: { index: false, follow: false } };
 
-export async function generateMetadata({ params }: { params: { publicId: string } }): Promise<Metadata> {
-  if (!/^[0-9a-f-]{36}$/i.test(params.publicId)) return baseMeta;
+export async function generateMetadata({ params }: { params: Promise<{ publicId: string }> }): Promise<Metadata> {
+  const { publicId } = await params;
+  if (!/^[0-9a-f-]{36}$/i.test(publicId)) return baseMeta;
   const q = await db.quote.findUnique({
-    where: { publicId: params.publicId },
+    where: { publicId },
     select: { number: true, totalCents: true, user: { select: { name: true, companyName: true } } },
   });
   if (!q) return baseMeta;
@@ -28,11 +29,12 @@ export async function generateMetadata({ params }: { params: { publicId: string 
 
 const fmtDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
 
-export default async function PublicQuotePage({ params }: { params: { publicId: string } }) {
-  if (!/^[0-9a-f-]{36}$/i.test(params.publicId)) notFound();
+export default async function PublicQuotePage({ params }: { params: Promise<{ publicId: string }> }) {
+  const { publicId } = await params;
+  if (!/^[0-9a-f-]{36}$/i.test(publicId)) notFound();
 
   const q = await db.quote.findUnique({
-    where: { publicId: params.publicId },
+    where: { publicId },
     select: {
       number: true,
       customerName: true,
@@ -63,7 +65,7 @@ export default async function PublicQuotePage({ params }: { params: { publicId: 
         {q.user.logoUpdatedAt && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/o/${params.publicId}/logo?v=${q.user.logoUpdatedAt.getTime()}`}
+            src={`/o/${publicId}/logo?v=${q.user.logoUpdatedAt.getTime()}`}
             alt={q.user.companyName ?? q.user.name}
             className="h-14 w-auto max-w-[60%] object-contain"
           />
@@ -128,8 +130,8 @@ export default async function PublicQuotePage({ params }: { params: { publicId: 
       {canApprove && (
         <div className="fixed inset-x-0 bottom-0 border-t bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-lg space-y-1">
-            <ApproveButton publicId={params.publicId} totalLabel={formatBRL(q.totalCents)} />
-            <RejectButton publicId={params.publicId} />
+            <ApproveButton publicId={publicId} totalLabel={formatBRL(q.totalCents)} />
+            <RejectButton publicId={publicId} />
           </div>
         </div>
       )}

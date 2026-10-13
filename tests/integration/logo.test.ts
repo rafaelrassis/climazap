@@ -45,14 +45,14 @@ describe("logo do técnico", () => {
     const q = await createQuote(quoteInput() as never);
     if (!q.ok) throw new Error(q.error);
 
-    const res = await publicLogo(new Request("http://x"), { params: { publicId: q.data.publicId } });
+    const res = await publicLogo(new Request("http://x"), { params: Promise.resolve({ publicId: q.data.publicId }) });
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("image/png");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(Buffer.from(await res.arrayBuffer()).equals(PNG_1X1)).toBe(true);
 
     expect((await removeLogo()).ok).toBe(true);
-    const gone = await publicLogo(new Request("http://x"), { params: { publicId: q.data.publicId } });
+    const gone = await publicLogo(new Request("http://x"), { params: Promise.resolve({ publicId: q.data.publicId }) });
     expect(gone.status).toBe(404);
     expect((await db.user.findUniqueOrThrow({ where: { id: u.id } })).logo).toBeNull();
   });
@@ -65,7 +65,7 @@ describe("logo do técnico", () => {
     loginAs(b.id);
     const qb = await createQuote(quoteInput() as never);
     if (!qb.ok) throw new Error(qb.error);
-    expect((await publicLogo(new Request("http://x"), { params: { publicId: qb.data.publicId } })).status).toBe(404);
-    expect((await publicLogo(new Request("http://x"), { params: { publicId: "não-uuid" } })).status).toBe(404);
+    expect((await publicLogo(new Request("http://x"), { params: Promise.resolve({ publicId: qb.data.publicId }) })).status).toBe(404);
+    expect((await publicLogo(new Request("http://x"), { params: Promise.resolve({ publicId: "não-uuid" }) })).status).toBe(404);
   });
 });

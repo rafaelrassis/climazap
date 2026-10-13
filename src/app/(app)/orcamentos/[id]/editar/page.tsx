@@ -7,11 +7,12 @@ import { QuoteForm } from "@/components/quotes/quote-form";
 
 const VALID_OPTIONS = [3, 7, 15, 30];
 
-export default async function EditarOrcamentoPage({ params }: { params: { id: string } }) {
+export default async function EditarOrcamentoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const userId = await requireUserId();
   const [q, services, customers] = await Promise.all([
     db.quote.findFirst({
-      where: { id: params.id, userId, status: { not: "APPROVED" } },
+      where: { id, userId, status: { not: "APPROVED" } },
       include: { items: { orderBy: { position: "asc" } } },
     }),
     listServices(),

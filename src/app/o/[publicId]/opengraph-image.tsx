@@ -9,10 +9,11 @@ export const contentType = "image/png";
 export const revalidate = 300;
 
 // Prévia do link no WhatsApp. Só dados já públicos na página: sem telefone/endereço/IDs internos.
-export default async function OgImage({ params }: { params: { publicId: string } }) {
-  const q = /^[0-9a-f-]{36}$/i.test(params.publicId)
+export default async function OgImage({ params }: { params: Promise<{ publicId: string }> }) {
+  const { publicId } = await params;
+  const q = /^[0-9a-f-]{36}$/i.test(publicId)
     ? await db.quote.findUnique({
-        where: { publicId: params.publicId },
+        where: { publicId },
         select: {
           number: true,
           customerName: true,

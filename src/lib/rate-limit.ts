@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 
 export async function getClientIp(): Promise<string> {
-  const h = headers();
+  const h = await headers();
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
 }
 

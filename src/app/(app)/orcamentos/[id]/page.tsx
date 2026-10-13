@@ -12,11 +12,12 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const fmtDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
 
-export default async function QuoteDetailPage({ params }: { params: { id: string } }) {
+export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const userId = await requireUserId();
   await expireStaleQuotes(userId);
   const q = await db.quote.findFirst({
-    where: { id: params.id, userId },
+    where: { id, userId },
     include: { items: { orderBy: { position: "asc" } } },
   });
   if (!q) notFound();
