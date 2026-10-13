@@ -66,19 +66,21 @@ export function QuoteForm({
   customers,
   initial,
   userId,
+  prefill,
 }: {
   services: ServiceOption[];
   customers: CustomerOption[];
   initial?: QuoteFormInitial;
   userId: string;
+  prefill?: { name: string; phone: string; address: string };
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const [customerName, setCustomerName] = useState(initial?.customerName ?? "");
-  const [phone, setPhone] = useState(initial ? maskPhone(initial.customerPhone) : "");
-  const [address, setAddress] = useState(initial?.customerAddress ?? "");
+  const [customerName, setCustomerName] = useState(initial?.customerName ?? prefill?.name ?? "");
+  const [phone, setPhone] = useState(initial ? maskPhone(initial.customerPhone) : prefill ? maskPhone(prefill.phone) : "");
+  const [address, setAddress] = useState(initial?.customerAddress ?? prefill?.address ?? "");
   const [lines, setLines] = useState<Line[]>(() =>
     (initial?.items ?? []).map((i) => ({
       key: crypto.randomUUID(),
@@ -92,14 +94,14 @@ export function QuoteForm({
   const [discountCents, setDiscountCents] = useState(initial?.discountCents ?? 0);
   const [validDays, setValidDays] = useState(String(initial?.validDays ?? 7));
 
-  const [picked, setPicked] = useState(!!initial);
+  const [picked, setPicked] = useState(!!initial || !!prefill);
 
   // Rascunho local (só em orçamento novo): sobrevive a fechar a aba/perder sinal. Chave por usuário.
   const draftKey = `fc:draft:${userId}`;
   const hydrated = useRef(false);
 
   useEffect(() => {
-    if (initial) return;
+    if (initial || prefill) return; // cliente pré-selecionado tem prioridade sobre o rascunho local
     try {
       const raw = localStorage.getItem(draftKey);
       if (raw) {

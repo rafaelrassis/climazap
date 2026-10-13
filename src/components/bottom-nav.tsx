@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Home, Settings, Wrench } from "lucide-react";
+import { FileText, Home, Settings, Users, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/inicio", label: "Início", Icon: Home },
   { href: "/orcamentos", label: "Orçamentos", Icon: FileText },
+  { href: "/clientes", label: "Clientes", Icon: Users },
   { href: "/servicos", label: "Serviços", Icon: Wrench },
   { href: "/ajustes", label: "Ajustes", Icon: Settings },
 ] as const;
@@ -26,7 +27,7 @@ export function BottomNav() {
         aria-label="Navegação principal"
         className="fixed inset-x-0 bottom-0 z-20 border-t bg-background pb-[env(safe-area-inset-bottom)]"
       >
-        <ul className="mx-auto grid max-w-lg grid-cols-4">
+        <ul className="mx-auto grid max-w-lg grid-cols-5">
           {ITEMS.map(({ href, label, Icon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (

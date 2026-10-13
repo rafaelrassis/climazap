@@ -26,7 +26,7 @@ src/middleware.ts       protege rotas; públicas: /login /cadastro /o/ /api/heal
 src/actions/            auth, services, quotes, customers, settings (só funções de ação aqui: exports de "use server" viram endpoints)
 src/lib/                reminders (resumo semanal), db, money, whatsapp, wa-template, session, quote-status, quote-expiry, rate-limit, email, notify, app-icon, validations/
 src/app/(auth)          login, cadastro
-src/app/(app)           inicio (dashboard), orcamentos (lista, novo, [id], [id]/editar), servicos, ajustes
+src/app/(app)           inicio (dashboard), orcamentos (lista, novo, [id], [id]/editar), servicos, clientes (lista, [id]), ajustes
 src/app/o/[publicId]    página pública + aprovar/recusar + opengraph-image
 src/components/         bottom-nav, money-input, logout-button, quotes/, services/, settings/
 ```
@@ -58,7 +58,6 @@ Roadmap 1-14 concluído: cadastro, detalhe/duplicar/editar/renovar/contrapropost
 3. **Logo do técnico** (upload) na página pública e na OG image.
 5. **Web push** ao técnico na aprovação (PWA).
 6. **Service worker** só se houver necessidade real de offline.
-7. **`/clientes`**: histórico, total aprovado, "novo orçamento" pré-preenchido.
 
 ## Riscos conhecidos
 - `next-auth@beta` (v5): fixar versão exata no `package.json`.
