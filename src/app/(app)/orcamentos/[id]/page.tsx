@@ -7,6 +7,7 @@ import { formatBRL } from "@/lib/money";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
 import { CopyButton } from "@/components/copy-button";
 import { buildPixPayload } from "@/lib/pix";
+import { PhotoManager } from "@/components/quotes/photo-manager";
 import { MaintenanceReminder } from "@/components/quotes/maintenance-reminder";
 import { QuoteActions } from "@/components/quotes/quote-actions";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   await expireStaleQuotes(userId);
   const q = await db.quote.findFirst({
     where: { id, userId },
-    include: { items: { orderBy: { position: "asc" } } },
+    include: { items: { orderBy: { position: "asc" } }, photos: { orderBy: { position: "asc" }, select: { id: true } } },
   });
   if (!q) notFound();
 
@@ -84,6 +85,8 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           <span className="font-medium">Motivo da recusa:</span> {q.rejectReason}
         </p>
       )}
+
+      <PhotoManager quoteId={q.id} photos={q.photos} editable={q.status !== "APPROVED"} />
 
       {q.notes && <p className="whitespace-pre-line text-sm text-muted-foreground">{q.notes}</p>}
 

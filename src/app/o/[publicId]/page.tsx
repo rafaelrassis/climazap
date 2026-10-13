@@ -49,6 +49,7 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
       validUntil: true,
       respondedAt: true,
       rejectReason: true,
+      photos: { orderBy: { position: "asc" }, select: { id: true } },
       user: { select: { name: true, companyName: true, logoUpdatedAt: true, pixKey: true, pixCity: true } },
       items: {
         orderBy: { position: "asc" },
@@ -124,6 +125,27 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
         </div>
         {q.validUntil && <p className="text-xs text-muted-foreground">Válido até {fmtDate.format(q.validUntil)}</p>}
       </div>
+
+      {status !== "DRAFT" && q.photos.length > 0 && (
+        <section aria-label="Fotos do orçamento" className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Fotos</h2>
+          <ul className="grid grid-cols-2 gap-2">
+            {q.photos.map((p, i) => (
+              <li key={p.id}>
+                <a href={`/o/${publicId}/foto/${p.id}`} target="_blank" rel="noopener">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/o/${publicId}/foto/${p.id}`}
+                    alt={`Foto ${i + 1} do orçamento`}
+                    loading="lazy"
+                    className="aspect-square w-full rounded-md border object-cover"
+                  />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {q.notes && <p className="whitespace-pre-line rounded-md border p-3 text-sm">{q.notes}</p>}
 

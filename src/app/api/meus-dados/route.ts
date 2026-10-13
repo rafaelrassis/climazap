@@ -42,6 +42,7 @@ export async function GET() {
           paidAt: true,
           reminderAt: true,
           createdAt: true,
+          _count: { select: { photos: true } },
           items: { orderBy: { position: "asc" }, select: { description: true, unit: true, quantity: true, unitPriceCents: true, totalCents: true } },
         },
       },

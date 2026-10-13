@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { MAX_PHOTOS_PER_QUOTE, MAX_PHOTO_BYTES, detectPhotoType } from "@/lib/image";
 import { notifyQuoteResponse } from "@/lib/notify";
 import { LIMITS, getClientIp, rateLimit } from "@/lib/rate-limit";
 import { requireUserId } from "@/lib/session";
@@ -405,5 +406,56 @@ export async function completeMaintenanceReminder(quoteId: string): Promise<Acti
 
   revalidatePath(`/orcamentos/${quoteId}`);
   revalidatePath("/inicio");
+  return { ok: true, data: undefined };
+}
+
+// Fotos do orçamento: até 4, JPEG/PNG até 450 KB (o navegador reduz antes de enviar). Não vale para aprovado.
+export async function addQuotePhoto(quoteId: string, formData: FormData): Promise<ActionResult<{ id: string }>> {
+  const userId = await requireUserId();
+  const file = formData.get("photo");
+  if (!(file instanceof File)) return { ok: false, error: "Arquivo inválido" };
+  if (file.size === 0 || file.size > MAX_PHOTO_BYTES) return { ok: false, error: "A foto deve ter até 450 KB" };
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const type = detectPhotoType(bytes);
+  if (!type) return { ok: false, error: "Use uma foto JPEG ou PNG" };
+
+  const quote = await db.quote.findFirst({
+    where: { id: quoteId, userId, status: { not: "APPROVED" } },
+    select: { id: true, _count: { select: { photos: true } } },
+  });
+  if (!quote) return { ok: false, error: "Orçamento não encontrado ou já aprovado" };
+  if (quote._count.photos >= MAX_PHOTOS_PER_QUOTE) return { ok: false, error: `Máximo de ${MAX_PHOTOS_PER_QUOTE} fotos` };
+
+  // posição = próxima livre; o limite é conferido dentro da transação, com o orçamento travado
+  const photo = await db.$transaction(async (tx) => {
+    // trava a linha do orçamento: sem isso, envios simultâneos leem a mesma contagem e passam do limite
+    await tx.$queryRaw`SELECT "id" FROM "Quote" WHERE "id" = ${quoteId} FOR UPDATE`;
+    const count = await tx.quotePhoto.count({ where: { quoteId } });
+    if (count >= MAX_PHOTOS_PER_QUOTE) return null;
+    return tx.quotePhoto.create({
+      data: { quoteId, data: Buffer.from(bytes), type, position: count },
+      select: { id: true },
+    });
+  });
+  if (!photo) return { ok: false, error: `Máximo de ${MAX_PHOTOS_PER_QUOTE} fotos` };
+
+  revalidatePath(`/orcamentos/${quoteId}`);
+  const pub = await db.quote.findUnique({ where: { id: quoteId }, select: { publicId: true } });
+  if (pub) revalidatePath(`/o/${pub.publicId}`);
+  return { ok: true, data: photo };
+}
+
+export async function removeQuotePhoto(photoId: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const photo = await db.quotePhoto.findFirst({
+    where: { id: photoId, quote: { userId, status: { not: "APPROVED" } } },
+    select: { id: true, quoteId: true, quote: { select: { publicId: true } } },
+  });
+  if (!photo) return { ok: false, error: "Foto não encontrada" };
+
+  await db.quotePhoto.delete({ where: { id: photo.id } });
+  revalidatePath(`/orcamentos/${photo.quoteId}`);
+  revalidatePath(`/o/${photo.quote.publicId}`);
   return { ok: true, data: undefined };
 }
