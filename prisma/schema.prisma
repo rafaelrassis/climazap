@@ -32,10 +32,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  services          Service[]
-  quotes            Quote[]
-  customers         Customer[]
-  pushSubscriptions PushSubscription[]
+  services            Service[]
+  quotes              Quote[]
+  customers           Customer[]
+  pushSubscriptions   PushSubscription[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 // userId null = serviço padrão do sistema (seed); preenchido = catálogo do usuário
@@ -146,6 +147,20 @@ model PushSubscription {
   auth      String
   userAgent String?
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Token de recuperação de senha: guardamos só o hash (SHA-256); uso único e validade curta
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -14,3 +14,12 @@ export const waTemplateSchema = z.object({
     .max(600, "Máximo de 600 caracteres")
     .refine((v) => v.includes("{link}"), "A mensagem precisa conter {link}"),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("E-mail inválido").max(160),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().regex(/^[0-9a-f]{64}$/, "Link inválido"),
+  password: z.string().min(6, "Mínimo de 6 caracteres").max(72, "Máximo de 72 caracteres"),
+});

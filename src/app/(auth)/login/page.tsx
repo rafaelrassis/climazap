@@ -19,7 +19,7 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [error, action] = useActionState(loginAction, undefined);
+  const [state, action] = useActionState(loginAction, undefined);
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4">
@@ -32,18 +32,23 @@ export default function LoginPage() {
           <form action={action} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input id="email" name="email" type="email" inputMode="email" autoComplete="email" required className="h-12 text-base" />
+              <Input id="email" name="email" type="email" inputMode="email" autoComplete="email" required defaultValue={state?.email} key={state?.email} className="h-12 text-base" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <Input id="password" name="password" type="password" autoComplete="current-password" required minLength={6} className="h-12 text-base" />
             </div>
-            {error && (
+            {state?.error && (
               <p role="alert" className="text-sm text-destructive">
-                {error}
+                {state.error}
               </p>
             )}
             <SubmitButton />
+            <p className="text-center text-sm">
+              <Link href="/esqueci-senha" className="inline-flex min-h-11 items-center font-medium underline">
+                Esqueci minha senha
+              </Link>
+            </p>
             <p className="text-center text-sm text-muted-foreground">
               Sem conta?{" "}
               <Link href="/cadastro" className="inline-flex min-h-11 items-center font-medium text-foreground underline">

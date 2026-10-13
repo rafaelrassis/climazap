@@ -33,12 +33,12 @@ export default function CadastroPage() {
           <form action={action} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
-              <Input id="name" name="name" autoComplete="name" required minLength={2} className="h-12 text-base" />
+              <Input id="name" name="name" autoComplete="name" required minLength={2} defaultValue={state?.values?.name} key={`n-${state?.values?.name}`} className="h-12 text-base" />
               {fe?.name && <p className="text-sm text-destructive">{fe.name[0]}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input id="email" name="email" type="email" inputMode="email" autoComplete="email" required className="h-12 text-base" />
+              <Input id="email" name="email" type="email" inputMode="email" autoComplete="email" required defaultValue={state?.values?.email} key={`e-${state?.values?.email}`} className="h-12 text-base" />
               {fe?.email && <p className="text-sm text-destructive">{fe.email[0]}</p>}
             </div>
             <div className="space-y-2">
