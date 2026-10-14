@@ -44,6 +44,9 @@ npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, 
 npm run test:e2e        # 42 testes Playwright (fluxos, formulário, segurança/XSS, layout a 320-430px, acessibilidade axe, PWA, LGPD) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
 ```
 
+## Configuração do Claude Code (`.claude/`)
+`settings.json` (permissões seguras e bloqueio de `migrate reset`/`--force-reset`/push forçado), `hooks/session-start.sh` (em sessão na nuvem instala dependências e sobe o Postgres de teste), `commands/` (`/verificar`, `/migrar`, `/e2e`) e `skills/steward` (convenções e armadilhas para PR/CI). Documentos: `README.md`, `DEPLOY.md`, `docs/ROTEIRO-TESTE.md` (teste com os primeiros técnicos).
+
 ## Deploy
 Ver `DEPLOY.md`. Migrations em `prisma/migrations` (gerar nova: `npx prisma migrate dev --name <nome>`; aplicar em produção: `npx prisma migrate deploy`). Versões de `next-auth`, `prisma` e `@prisma/client` fixadas (exatas).
 
