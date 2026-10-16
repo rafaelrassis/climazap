@@ -10,7 +10,7 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const path = nextUrl.pathname;
-      const isPublic = PUBLIC_PREFIXES.some((p) => path.startsWith(p));
+      const isPublic = path === "/" || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
 
       if (path.startsWith("/login") && isLoggedIn) {
         return Response.redirect(new URL("/inicio", nextUrl));
