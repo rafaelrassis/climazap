@@ -4,7 +4,8 @@ import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
-import { expiryLabel, followUpMessage } from "@/lib/followup";
+import { expiryLabel, followUpMessage, nudgedLabel } from "@/lib/followup";
+import { NudgeButton } from "@/components/quotes/nudge-button";
 import { StatusBadge } from "@/components/quotes/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +25,7 @@ export default async function OrcamentosPage() {
       status: true,
       totalCents: true,
       validUntil: true,
+      lastNudgeAt: true,
     },
   });
 
@@ -55,14 +57,15 @@ export default async function OrcamentosPage() {
                   {q.status === "SENT" && expiryLabel(q.validUntil, now) && (
                     <span className="text-xs font-bold text-warning">{expiryLabel(q.validUntil, now)}</span>
                   )}
+                  {q.status === "SENT" && nudgedLabel(q.lastNudgeAt, now) && (
+                    <span className="text-xs font-semibold text-muted-foreground">{nudgedLabel(q.lastNudgeAt, now)}</span>
+                  )}
                 </div>
               </div>
               <p className="shrink-0 text-sm font-semibold">{formatBRL(q.totalCents)}</p>
             </Link>
             {q.status === "SENT" && (
-              <Button asChild className="h-11 shrink-0 bg-success px-4 text-white hover:bg-success/90">
-                <a href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))}>Cobrar</a>
-              </Button>
+              <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))} nudged={!!q.lastNudgeAt} />
             )}
           </CardContent>
         </Card>

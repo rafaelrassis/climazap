@@ -20,3 +20,9 @@ export function followUpMessage(q: { customerName: string; number: number; valid
   }
   return `Oi, ${q.customerName}! Conseguiu ver o orçamento #${q.number}? Qualquer dúvida é só falar.`;
 }
+
+export function nudgedLabel(lastNudgeAt: Date | null, now: Date): string | null {
+  if (!lastNudgeAt) return null;
+  const days = Math.floor((now.getTime() - lastNudgeAt.getTime()) / DAY_MS);
+  return days <= 0 ? "cobrado hoje" : `cobrado há ${days}d`;
+}

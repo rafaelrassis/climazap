@@ -10,6 +10,7 @@ import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { expiryLabel, followUpMessage } from "@/lib/followup";
 import { cn, getInitials } from "@/lib/utils";
 import { CompleteReminderButton } from "@/components/quotes/complete-reminder-button";
+import { NudgeButton } from "@/components/quotes/nudge-button";
 import { StatusBadge } from "@/components/quotes/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -88,7 +89,15 @@ export default async function InicioPage() {
       where: {
         userId,
         status: "SENT",
-        OR: [{ sentAt: { lte: staleSince } }, { validUntil: { gt: now, lte: new Date(now.getTime() + DAY_MS) } }],
+        OR: [
+          // sem resposta há 2+ dias, e não cobrado nas últimas 48h
+          { sentAt: { lte: staleSince }, OR: [{ lastNudgeAt: null }, { lastNudgeAt: { lte: staleSince } }] },
+          // vence em até 24h, e não cobrado nas últimas 24h
+          {
+            validUntil: { gt: now, lte: new Date(now.getTime() + DAY_MS) },
+            OR: [{ lastNudgeAt: null }, { lastNudgeAt: { lte: new Date(now.getTime() - DAY_MS) } }],
+          },
+        ],
       },
       orderBy: [{ validUntil: "asc" }, { sentAt: "asc" }],
       take: 5,
@@ -100,6 +109,7 @@ export default async function InicioPage() {
         totalCents: true,
         sentAt: true,
         validUntil: true,
+        lastNudgeAt: true,
       },
     }),
     db.quote.findMany({
@@ -240,16 +250,7 @@ export default async function InicioPage() {
                         )}
                       </span>
                     </Link>
-                    <Button
-                      asChild
-                      className="h-11 shrink-0 bg-success px-4 text-white hover:bg-success/90"
-                    >
-                      <a
-                        href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))}
-                      >
-                        Cobrar
-                      </a>
-                    </Button>
+                    <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))} nudged={!!q.lastNudgeAt} />
                   </CardContent>
                 </Card>
               ))}

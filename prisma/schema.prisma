@@ -88,6 +88,7 @@ model Quote {
   paidAt          DateTime?
   reminderAt      DateTime?
   reminderDoneAt  DateTime?
+  lastNudgeAt     DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
