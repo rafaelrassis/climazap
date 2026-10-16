@@ -8,6 +8,7 @@ import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { expiryLabel, followUpMessage } from "@/lib/followup";
+import { followUpWhere } from "@/lib/followup-queries";
 import { cn, getInitials } from "@/lib/utils";
 import { CompleteReminderButton } from "@/components/quotes/complete-reminder-button";
 import { NudgeButton } from "@/components/quotes/nudge-button";
@@ -70,7 +71,6 @@ export default async function InicioPage() {
   const now = new Date();
   const monthStart = monthStartBR(now);
   const since30 = new Date(now.getTime() - 30 * DAY_MS);
-  const staleSince = new Date(now.getTime() - 2 * DAY_MS);
 
   const [pending, approvedMonth, receivable, answered30, approved30, stale, due, recent] = await Promise.all([
     db.quote.aggregate({ where: { userId, status: "SENT" }, _count: true, _sum: { totalCents: true } }),
@@ -87,19 +87,7 @@ export default async function InicioPage() {
     db.quote.count({ where: { userId, sentAt: { gte: since30 }, status: { in: ["APPROVED", "REJECTED", "EXPIRED"] } } }),
     db.quote.count({ where: { userId, sentAt: { gte: since30 }, status: "APPROVED" } }),
     db.quote.findMany({
-      where: {
-        userId,
-        status: "SENT",
-        OR: [
-          // sem resposta há 2+ dias, e não cobrado nas últimas 48h
-          { sentAt: { lte: staleSince }, OR: [{ lastNudgeAt: null }, { lastNudgeAt: { lte: staleSince } }] },
-          // vence em até 24h, e não cobrado nas últimas 24h
-          {
-            validUntil: { gt: now, lte: new Date(now.getTime() + DAY_MS) },
-            OR: [{ lastNudgeAt: null }, { lastNudgeAt: { lte: new Date(now.getTime() - DAY_MS) } }],
-          },
-        ],
-      },
+      where: { userId, ...followUpWhere(now) },
       orderBy: [{ validUntil: "asc" }, { sentAt: "asc" }],
       take: 5,
       select: {

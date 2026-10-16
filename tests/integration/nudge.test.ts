@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { createQuote, markQuoteNudged, snoozeQuoteFollowUp } from "@/actions/quotes";
+import { followUpWhere, staleWhere } from "@/lib/followup-queries";
 import { sendWeeklyDigest } from "@/lib/reminders";
 import { loginAs, makeUser, quoteInput, resetDb } from "../helpers/db";
 
@@ -77,5 +78,40 @@ describe("cobrança de orçamentos", () => {
     sent.length = 0;
     await snoozeQuoteFollowUp(id);
     expect(await sendWeeklyDigest()).toEqual({ users: 0, sent: 0 });
+  });
+});
+
+describe("filtros compartilhados (followup-queries)", () => {
+  it("painel: sem resposta ou vencendo, respeitando cobrança e adiamento", async () => {
+    const u = await makeUser();
+    loginAs(u.id);
+    const stale = await sentQuote(5 * DAY); // enviado há 3 dias
+    const soon = await sentQuote(12 * 60 * 60 * 1000); // vence em 12h
+    const fresh = await sentQuote(5 * DAY);
+    await db.quote.update({ where: { id: fresh }, data: { sentAt: new Date() } }); // enviado agora
+
+    const ids = async () =>
+      (await db.quote.findMany({ where: { userId: u.id, ...followUpWhere(new Date()) }, select: { id: true } })).map((q) => q.id).sort();
+
+    expect(await ids()).toEqual([stale, soon].sort());
+
+    await markQuoteNudged(stale);
+    await markQuoteNudged(soon);
+    expect(await ids()).toEqual([]); // cobrados agora somem
+
+    await db.quote.updateMany({ where: { id: soon }, data: { lastNudgeAt: new Date(Date.now() - 2 * 60 * 60 * 1000) } });
+    expect(await ids()).toEqual([]); // vence em 12h, cobrado há 2h: ainda dentro das 24h
+
+    await db.quote.updateMany({ where: { id: soon }, data: { lastNudgeAt: new Date(Date.now() - 25 * 60 * 60 * 1000) } });
+    expect(await ids()).toEqual([soon]); // 24h depois da cobrança volta
+  });
+
+  it("orçamento sem validade (null) ainda aparece como sem resposta", async () => {
+    const u = await makeUser();
+    loginAs(u.id);
+    const id = await sentQuote();
+    await db.quote.update({ where: { id }, data: { validUntil: null } });
+    const rows = await db.quote.findMany({ where: { userId: u.id, ...staleWhere(new Date()) } });
+    expect(rows.map((q) => q.id)).toEqual([id]);
   });
 });
