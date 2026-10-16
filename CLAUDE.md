@@ -51,7 +51,10 @@ npm run test:e2e        # 42 testes Playwright (fluxos, formulário, segurança/
 Ver `DEPLOY.md`. Migrations em `prisma/migrations` (gerar nova: `npx prisma migrate dev --name <nome>`; aplicar em produção: `npx prisma migrate deploy`). Versões de `next-auth`, `prisma` e `@prisma/client` fixadas (exatas).
 
 ## Cron
-`vercel.json`: segunda 11:00 UTC (8h BRT) chama `/api/cron/lembretes`, protegido por `CRON_SECRET` (Bearer). Rota pública no middleware, autenticada pelo segredo.
+`vercel.json`: segunda 11:00 UTC (8h BRT) chama `/api/cron/lembretes` (resumo semanal) e todo dia 08:00 UTC (5h BRT) `/api/cron/expirar` (SENT vencidos -> EXPIRED), ambos protegidos por `CRON_SECRET` (Bearer, `src/lib/cron-auth.ts`). Rotas públicas no middleware, autenticadas pelo segredo.
+
+## Cobrança (follow-up)
+`Quote.lastNudgeAt` esconde o orçamento das listas (passado = cobrado, futuro = adiado); `QuoteNudge` (NUDGE/SNOOZE) é o histórico que alimenta o funil de 30 dias. Filtros em `src/lib/followup-queries.ts` (painel e resumo semanal usam os mesmos). Mensagem editável em Ajustes (`User.nudgeTemplate`); orçamento que vence em até 24h usa a mensagem de urgência.
 
 ## Git
 Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nunca commitar `.env`.

@@ -7,3 +7,12 @@ export async function expireStaleQuotes(userId: string): Promise<void> {
     data: { status: "EXPIRED" },
   });
 }
+
+// Todos os técnicos (cron diário); devolve quantos orçamentos expiraram
+export async function expireAllStaleQuotes(): Promise<number> {
+  const { count } = await db.quote.updateMany({
+    where: { status: "SENT", validUntil: { lt: new Date() } },
+    data: { status: "EXPIRED" },
+  });
+  return count;
+}
