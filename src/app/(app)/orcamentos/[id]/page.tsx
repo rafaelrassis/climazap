@@ -40,10 +40,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
       <header className="space-y-1">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-lg font-semibold">Orçamento #{q.number}</h1>
-          <div className="flex items-center gap-2">
-            <StatusBadge status={status} />
-            {status === "APPROVED" && q.paidAt && <span className="text-xs font-semibold text-muted-foreground">· Pago</span>}
-          </div>
+          <StatusBadge status={status} suffix={status === "APPROVED" && q.paidAt ? " · Pago" : undefined} />
         </div>
         <p className="text-sm">{q.customerName}</p>
         {q.title && <p className="text-sm text-muted-foreground">{q.title}</p>}

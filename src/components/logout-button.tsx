@@ -4,7 +4,7 @@ import { logoutAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 
 // Limpa rascunhos locais (fc:draft:*) antes de sair: aparelho pode ser compartilhado
-export function LogoutButton() {
+export function LogoutButton({ className }: { className?: string }) {
   return (
     <form
       action={logoutAction}
@@ -18,7 +18,7 @@ export function LogoutButton() {
         }
       }}
     >
-      <Button variant="ghost" size="sm" type="submit" className="min-h-11">
+      <Button variant="ghost" size="sm" type="submit" className={className ?? "min-h-11"}>
         Sair
       </Button>
     </form>

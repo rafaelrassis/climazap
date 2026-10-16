@@ -25,7 +25,9 @@ test("conteúdo com HTML/script é exibido como texto em todas as telas (sem XSS
     expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss), `XSS em ${path}`).toBeUndefined();
   }
   await page.goto(`/orcamentos/${t.quoteId}`);
-  await expect(page.getByText(XSS).first()).toBeVisible(); // o texto aparece literal
+  // escopado a <main>: a sidebar desktop (fora de <main>) repete o nome do usuário mas fica
+  // display:none no viewport mobile do teste, o que faria .first() pegar um elemento oculto
+  await expect(page.locator("main").getByText(XSS).first()).toBeVisible(); // o texto aparece literal
 
   // página pública, sem login
   const ctx = await browser.newContext();
