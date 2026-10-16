@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
-import { approveQuoteByPublicId, completeMaintenanceReminder, createQuote, setMaintenanceReminder } from "@/actions/quotes";
+import { approveQuoteByPublicId, completeMaintenanceReminder, createQuote, markQuoteNudged, setMaintenanceReminder } from "@/actions/quotes";
 import { sendWeeklyDigest } from "@/lib/reminders";
 import { loginAs, makeUser, quoteInput, resetDb } from "../helpers/db";
 
@@ -67,6 +67,38 @@ describe("resumo semanal", () => {
     await approvedWithReminder("Futuro", 6);
     expect(await sendWeeklyDigest()).toEqual({ users: 0, sent: 0 });
     expect(sent).toHaveLength(0);
+  });
+
+  it("funil não mistura cobranças entre técnicos (consulta em lote)", async () => {
+    async function staleQuote(name: string, phone: string) {
+      const res = await createQuote(quoteInput({ customerName: name, customerPhone: phone }) as never);
+      if (!res.ok) throw new Error(res.error);
+      await db.quote.update({
+        where: { id: res.data.id },
+        data: { status: "SENT", sentAt: new Date(Date.now() - 3 * 86_400_000), validUntil: new Date(Date.now() + 5 * 86_400_000) },
+      });
+      return res.data.id;
+    }
+
+    const a = await makeUser("fa@t.com");
+    const b = await makeUser("fb@t.com");
+
+    loginAs(a.id);
+    const aNudged = await staleQuote("Cliente A", "11911110000");
+    await markQuoteNudged(aNudged);
+    await db.quote.update({ where: { id: aNudged }, data: { status: "APPROVED", respondedAt: new Date() } });
+    await staleQuote("Outro A", "11911110001"); // mantém o e-mail do A (ainda tem sem resposta)
+
+    loginAs(b.id);
+    await staleQuote("Cliente B", "11922220000"); // nunca cobrado
+
+    const result = await sendWeeklyDigest();
+    expect(result).toEqual({ users: 2, sent: 2 });
+
+    const mailA = sent.find((m) => m.to === "fa@t.com")!;
+    const mailB = sent.find((m) => m.to === "fb@t.com")!;
+    expect(mailA.html).toContain("você cobrou 1 cliente e 1 aprovou depois");
+    expect(mailB.html).not.toContain("você cobrou");
   });
 });
 

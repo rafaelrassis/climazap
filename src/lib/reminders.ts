@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { staleWhere } from "@/lib/followup-queries";
-import { getNudgeFunnel } from "@/lib/nudge-funnel";
+import { getNudgeFunnelBatch } from "@/lib/nudge-funnel";
 import { formatBRL } from "@/lib/money";
 import { unsubscribePostUrl, unsubscribeUrl } from "@/lib/unsubscribe";
 
@@ -46,6 +46,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
   });
 
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const funnels = await getNudgeFunnelBatch(users.map((u) => u.id), now);
   let sent = 0;
 
   for (const u of users) {
@@ -62,7 +63,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
     ].filter((s): s is Section => s !== null);
     if (!sections.length) continue;
 
-    const funnel = await getNudgeFunnel(u.id, now);
+    const funnel = funnels.get(u.id)!;
     const funnelLine = funnel.nudged
       ? `Nos últimos 30 dias você cobrou ${funnel.nudged} ${funnel.nudged === 1 ? "cliente" : "clientes"} e ${funnel.approvedAfter} aprovou${funnel.approvedAfter === 1 ? "" : "aram"} depois${funnel.approvedAfter ? ` (${formatBRL(funnel.approvedCents)})` : ""}.`
       : "";
