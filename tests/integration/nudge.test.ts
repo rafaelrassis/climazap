@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { createQuote, markQuoteNudged, snoozeQuoteFollowUp } from "@/actions/quotes";
 import { followUpWhere, staleWhere } from "@/lib/followup-queries";
+import { getNudgeFunnel } from "@/lib/nudge-funnel";
 import { sendWeeklyDigest } from "@/lib/reminders";
 import { loginAs, makeUser, quoteInput, resetDb } from "../helpers/db";
 
@@ -113,5 +114,29 @@ describe("filtros compartilhados (followup-queries)", () => {
     await db.quote.update({ where: { id }, data: { validUntil: null } });
     const rows = await db.quote.findMany({ where: { userId: u.id, ...staleWhere(new Date()) } });
     expect(rows.map((q) => q.id)).toEqual([id]);
+  });
+});
+
+describe("funil de cobrança", () => {
+  it("conta cobrados e aprovados depois da cobrança, só do técnico e dos últimos 30 dias", async () => {
+    const a = await makeUser();
+    const b = await makeUser();
+    loginAs(a.id);
+    const won = await sentQuote();
+    const lost = await sentQuote();
+    const approvedBefore = await sentQuote();
+    const old = await sentQuote();
+    await markQuoteNudged(won);
+    await markQuoteNudged(lost);
+    await markQuoteNudged(approvedBefore);
+    await markQuoteNudged(old);
+    await db.quote.update({ where: { id: won }, data: { status: "APPROVED", respondedAt: new Date(Date.now() + 1000) } });
+    await db.quote.update({ where: { id: approvedBefore }, data: { status: "APPROVED", respondedAt: new Date(Date.now() - DAY) } });
+    await db.quote.update({ where: { id: old }, data: { lastNudgeAt: new Date(Date.now() - 40 * DAY) } });
+
+    const f = await getNudgeFunnel(a.id);
+    expect(f).toMatchObject({ nudged: 3, approvedAfter: 1 });
+    expect(f.approvedCents).toBeGreaterThan(0);
+    expect(await getNudgeFunnel(b.id)).toEqual({ nudged: 0, approvedAfter: 0, approvedCents: 0 });
   });
 });

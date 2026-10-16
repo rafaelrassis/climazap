@@ -9,6 +9,7 @@ import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { expiryLabel, followUpMessage } from "@/lib/followup";
 import { followUpWhere } from "@/lib/followup-queries";
+import { getNudgeFunnel } from "@/lib/nudge-funnel";
 import { cn, getInitials } from "@/lib/utils";
 import { CompleteReminderButton } from "@/components/quotes/complete-reminder-button";
 import { NudgeButton } from "@/components/quotes/nudge-button";
@@ -72,7 +73,7 @@ export default async function InicioPage() {
   const monthStart = monthStartBR(now);
   const since30 = new Date(now.getTime() - 30 * DAY_MS);
 
-  const [pending, approvedMonth, receivable, answered30, approved30, stale, due, recent] = await Promise.all([
+  const [pending, approvedMonth, receivable, answered30, approved30, stale, due, recent, funnel] = await Promise.all([
     db.quote.aggregate({ where: { userId, status: "SENT" }, _count: true, _sum: { totalCents: true } }),
     db.quote.aggregate({
       where: { userId, status: "APPROVED", respondedAt: { gte: monthStart } },
@@ -113,6 +114,7 @@ export default async function InicioPage() {
       take: 5,
       select: { id: true, number: true, customerName: true, status: true, totalCents: true },
     }),
+    getNudgeFunnel(userId, now),
   ]);
 
   const rate = answered30 > 0 ? Math.round((approved30 / answered30) * 100) : null;
@@ -251,6 +253,18 @@ export default async function InicioPage() {
                 </Card>
               ))}
             </section>
+          )}
+
+          {funnel.nudged > 0 && (
+            <Card>
+              <CardContent className="space-y-1 p-3">
+                <h2 className="text-[15px] font-bold">Cobranças nos últimos 30 dias</h2>
+                <p className="text-[13px] font-semibold text-muted-foreground tabular-nums">
+                  {plural(funnel.nudged, "cobrado", "cobrados")} · {funnel.approvedAfter} aprovaram depois
+                  {funnel.approvedAfter > 0 && ` (${formatBRL(funnel.approvedCents)})`}
+                </p>
+              </CardContent>
+            </Card>
           )}
         </div>
 
