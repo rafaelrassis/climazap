@@ -7,6 +7,7 @@ import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { expiryLabel, followUpMessage } from "@/lib/followup";
 import { cn, getInitials } from "@/lib/utils";
 import { CompleteReminderButton } from "@/components/quotes/complete-reminder-button";
 import { StatusBadge } from "@/components/quotes/status-badge";
@@ -84,10 +85,22 @@ export default async function InicioPage() {
     db.quote.count({ where: { userId, sentAt: { gte: since30 }, status: { in: ["APPROVED", "REJECTED", "EXPIRED"] } } }),
     db.quote.count({ where: { userId, sentAt: { gte: since30 }, status: "APPROVED" } }),
     db.quote.findMany({
-      where: { userId, status: "SENT", sentAt: { lte: staleSince } },
-      orderBy: { sentAt: "asc" },
+      where: {
+        userId,
+        status: "SENT",
+        OR: [{ sentAt: { lte: staleSince } }, { validUntil: { gt: now, lte: new Date(now.getTime() + DAY_MS) } }],
+      },
+      orderBy: [{ validUntil: "asc" }, { sentAt: "asc" }],
       take: 5,
-      select: { id: true, number: true, customerName: true, customerPhone: true, totalCents: true, sentAt: true },
+      select: {
+        id: true,
+        number: true,
+        customerName: true,
+        customerPhone: true,
+        totalCents: true,
+        sentAt: true,
+        validUntil: true,
+      },
     }),
     db.quote.findMany({
       where: { userId, reminderAt: { lte: now }, reminderDoneAt: null },
@@ -209,7 +222,7 @@ export default async function InicioPage() {
 
           {stale.length > 0 && (
             <section className="space-y-2">
-              <h2 className="text-[15px] font-bold">Sem resposta há mais de 2 dias</h2>
+              <h2 className="text-[15px] font-bold">Sem resposta ou vencendo</h2>
               {stale.map((q) => (
                 <Card key={q.id}>
                   <CardContent className="flex items-center gap-3 p-3">
@@ -222,6 +235,9 @@ export default async function InicioPage() {
                       </span>
                       <span className="truncate text-[13px] font-semibold text-muted-foreground tabular-nums">
                         {formatBRL(q.totalCents)} · há {plural(daysAgo(q.sentAt ?? now, now), "dia", "dias")}
+                        {expiryLabel(q.validUntil, now) && (
+                          <span className="font-bold text-warning"> · {expiryLabel(q.validUntil, now)}</span>
+                        )}
                       </span>
                     </Link>
                     <Button
@@ -229,10 +245,7 @@ export default async function InicioPage() {
                       className="h-11 shrink-0 bg-success px-4 text-white hover:bg-success/90"
                     >
                       <a
-                        href={buildWhatsAppUrl(
-                          q.customerPhone,
-                          `Oi, ${q.customerName}! Conseguiu ver o orçamento #${q.number}? Qualquer dúvida é só falar.`,
-                        )}
+                        href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))}
                       >
                         Cobrar
                       </a>
