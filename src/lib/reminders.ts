@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { staleWhere } from "@/lib/followup-queries";
+import { getNudgeFunnel } from "@/lib/nudge-funnel";
 import { formatBRL } from "@/lib/money";
 import { unsubscribePostUrl, unsubscribeUrl } from "@/lib/unsubscribe";
 
@@ -61,6 +62,11 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
     ].filter((s): s is Section => s !== null);
     if (!sections.length) continue;
 
+    const funnel = await getNudgeFunnel(u.id, now);
+    const funnelLine = funnel.nudged
+      ? `Nos últimos 30 dias você cobrou ${funnel.nudged} ${funnel.nudged === 1 ? "cliente" : "clientes"} e ${funnel.approvedAfter} aprovou${funnel.approvedAfter === 1 ? "" : "aram"} depois${funnel.approvedAfter ? ` (${formatBRL(funnel.approvedCents)})` : ""}.`
+      : "";
+
     const total = maintenance.length + waiting.length;
     const subject = total === 1 ? "Resumo da semana: 1 cliente para chamar" : `Resumo da semana: ${total} clientes para chamar`;
 
@@ -71,9 +77,12 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
         s.extra ? `e mais ${s.extra}` : "",
         "",
       ]),
+      funnelLine,
+      funnelLine ? "" : null,
       `Chame pelo WhatsApp: ${base}/inicio`,
       `Para parar de receber este resumo: ${unsubscribeUrl(u.id, base)}`,
     ]
+      .filter((l): l is string => l !== null)
       .filter((l, i, a) => l !== "" || a[i - 1] !== "")
       .join("\n");
 
@@ -85,6 +94,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
             (s.extra ? `<p>e mais ${s.extra}</p>` : ""),
         )
         .join("") +
+      (funnelLine ? `<p>${escapeHtml(funnelLine)}</p>` : "") +
       `<p><a href="${escapeHtml(base)}/inicio">Abrir o FechouClima</a></p>` +
       `<p style="color:#64748b;font-size:12px">Para parar de receber este resumo, <a href="${escapeHtml(unsubscribeUrl(u.id, base))}">cancele aqui</a> (ou desative em Ajustes).</p>`;
 

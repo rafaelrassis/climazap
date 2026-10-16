@@ -140,3 +140,20 @@ describe("funil de cobrança", () => {
     expect(await getNudgeFunnel(b.id)).toEqual({ nudged: 0, approvedAfter: 0, approvedCents: 0 });
   });
 });
+
+describe("resumo semanal com funil", () => {
+  it("inclui a linha do funil só quando houve cobrança", async () => {
+    const u = await makeUser("f@t.com");
+    loginAs(u.id);
+    await sentQuote();
+    expect(await sendWeeklyDigest()).toEqual({ users: 1, sent: 1 });
+    expect(sent[0].text).not.toContain("você cobrou");
+
+    sent.length = 0;
+    const cobrado = await sentQuote();
+    await markQuoteNudged(cobrado);
+    await db.quote.update({ where: { id: cobrado }, data: { status: "APPROVED", respondedAt: new Date(Date.now() + 1000) } });
+    expect(await sendWeeklyDigest()).toEqual({ users: 1, sent: 1 });
+    expect(sent[0].text).toContain("você cobrou 1 cliente e 1 aprovou depois");
+  });
+});
