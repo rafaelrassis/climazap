@@ -22,7 +22,7 @@ test("ajustes: resumo semanal, template do WhatsApp e logo persistem", async ({ 
   // template: modelo "Curto", prévia, salvar e persistir
   await page.getByRole("button", { name: "Curto" }).click();
   await expect(page.getByText("Aprove aqui: https://fechouclima.com.br/o/...")).toBeVisible();
-  await page.getByRole("button", { name: "Salvar mensagem" }).click();
+  await page.getByRole("button", { name: "Salvar mensagem", exact: true }).click();
   await expect(page.getByText("Mensagem salva")).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Mensagem do WhatsApp")).toHaveValue(/Aprove aqui: \{link\}/);
@@ -30,11 +30,11 @@ test("ajustes: resumo semanal, template do WhatsApp e logo persistem", async ({ 
   // variável desconhecida bloqueia o salvar
   await page.getByLabel("Mensagem do WhatsApp").fill("Oi {nome}, veja {link}");
   await expect(page.getByText(/Variável desconhecida: \{nome\}/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Salvar mensagem" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Salvar mensagem", exact: true })).toBeDisabled();
 
   // sem {link} o servidor também recusa (cliente não consegue abrir o orçamento)
   await page.getByLabel("Mensagem do WhatsApp").fill("Orçamento pronto, fale comigo");
-  await page.getByRole("button", { name: "Salvar mensagem" }).click();
+  await page.getByRole("button", { name: "Salvar mensagem", exact: true }).click();
   await expect(page.getByText("A mensagem precisa conter {link}")).toBeVisible();
 
   // logo: enviar (PNG reduzido no navegador), aparece e remove
