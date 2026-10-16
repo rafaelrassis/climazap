@@ -47,6 +47,7 @@ describe("cobrança de orçamentos", () => {
     loginAs(a.id);
     expect((await markQuoteNudged(id)).ok).toBe(true);
     expect((await db.quote.findUniqueOrThrow({ where: { id } })).lastNudgeAt).not.toBeNull();
+    expect(await db.quoteNudge.findMany({ where: { quoteId: id } })).toMatchObject([{ kind: "NUDGE", userId: a.id }]);
 
     await db.quote.update({ where: { id }, data: { status: "APPROVED" } });
     expect((await markQuoteNudged(id)).ok).toBe(false);
@@ -61,8 +62,11 @@ describe("cobrança de orçamentos", () => {
     expect((await snoozeQuoteFollowUp(ok)).ok).toBe(true);
     expect((await db.quote.findUniqueOrThrow({ where: { id: ok } })).lastNudgeAt!.getTime()).toBeGreaterThan(Date.now());
 
+    expect(await db.quoteNudge.findMany({ where: { quoteId: ok } })).toMatchObject([{ kind: "SNOOZE" }]);
+
     expect((await snoozeQuoteFollowUp(soon)).ok).toBe(false);
     expect((await db.quote.findUniqueOrThrow({ where: { id: soon } })).lastNudgeAt).toBeNull();
+    expect(await db.quoteNudge.count({ where: { quoteId: soon } })).toBe(0);
   });
 
   it("resumo semanal ignora cobrados/adiados e volta a listar depois de 48h", async () => {
@@ -118,7 +122,7 @@ describe("filtros compartilhados (followup-queries)", () => {
 });
 
 describe("funil de cobrança", () => {
-  it("conta cobrados e aprovados depois da cobrança, só do técnico e dos últimos 30 dias", async () => {
+  it("conta orçamentos cobrados e aprovados depois da cobrança, só do técnico e dos últimos 30 dias", async () => {
     const a = await makeUser();
     const b = await makeUser();
     loginAs(a.id);
@@ -126,13 +130,12 @@ describe("funil de cobrança", () => {
     const lost = await sentQuote();
     const approvedBefore = await sentQuote();
     const old = await sentQuote();
-    await markQuoteNudged(won);
-    await markQuoteNudged(lost);
-    await markQuoteNudged(approvedBefore);
-    await markQuoteNudged(old);
+    const snoozedOnly = await sentQuote();
+    for (const id of [won, won, lost, approvedBefore, old]) await markQuoteNudged(id); // won cobrado 2x conta 1
+    await snoozeQuoteFollowUp(snoozedOnly); // adiar não é cobrar
     await db.quote.update({ where: { id: won }, data: { status: "APPROVED", respondedAt: new Date(Date.now() + 1000) } });
     await db.quote.update({ where: { id: approvedBefore }, data: { status: "APPROVED", respondedAt: new Date(Date.now() - DAY) } });
-    await db.quote.update({ where: { id: old }, data: { lastNudgeAt: new Date(Date.now() - 40 * DAY) } });
+    await db.quoteNudge.updateMany({ where: { quoteId: old }, data: { createdAt: new Date(Date.now() - 40 * DAY) } });
 
     const f = await getNudgeFunnel(a.id);
     expect(f).toMatchObject({ nudged: 3, approvedAfter: 1 });

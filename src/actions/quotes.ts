@@ -465,11 +465,16 @@ export async function markQuoteNudged(quoteId: string): Promise<ActionResult> {
   const userId = await requireUserId();
   const id = z.string().min(1).max(64).safeParse(quoteId);
   if (!id.success) return { ok: false, error: "Orçamento inválido" };
-  const { count } = await db.quote.updateMany({
-    where: { id: id.data, userId, status: "SENT" },
-    data: { lastNudgeAt: new Date() },
+  const done = await db.$transaction(async (tx) => {
+    const { count } = await tx.quote.updateMany({
+      where: { id: id.data, userId, status: "SENT" },
+      data: { lastNudgeAt: new Date() },
+    });
+    if (count === 0) return false;
+    await tx.quoteNudge.create({ data: { quoteId: id.data, userId, kind: "NUDGE" } });
+    return true;
   });
-  if (count === 0) return { ok: false, error: "Orçamento não está aguardando resposta" };
+  if (!done) return { ok: false, error: "Orçamento não está aguardando resposta" };
   revalidatePath("/inicio");
   revalidatePath("/orcamentos");
   return { ok: true, data: undefined };
@@ -480,17 +485,18 @@ export async function snoozeQuoteFollowUp(quoteId: string): Promise<ActionResult
   const userId = await requireUserId();
   const id = z.string().min(1).max(64).safeParse(quoteId);
   if (!id.success) return { ok: false, error: "Orçamento inválido" };
-  const { count } = await db.quote.updateMany({
-    // não adia quem vence em até 24h: ele sumiria da lista e poderia expirar sem cobrança
-    where: {
-      id: id.data,
-      userId,
-      status: "SENT",
-      OR: [{ validUntil: null }, { validUntil: { gt: new Date(Date.now() + 24 * 60 * 60 * 1000) } }],
-    },
-    data: { lastNudgeAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+  const day = 24 * 60 * 60 * 1000;
+  const done = await db.$transaction(async (tx) => {
+    const { count } = await tx.quote.updateMany({
+      // não adia quem vence em até 24h: ele sumiria da lista e poderia expirar sem cobrança
+      where: { id: id.data, userId, status: "SENT", OR: [{ validUntil: null }, { validUntil: { gt: new Date(Date.now() + day) } }] },
+      data: { lastNudgeAt: new Date(Date.now() + day) },
+    });
+    if (count === 0) return false;
+    await tx.quoteNudge.create({ data: { quoteId: id.data, userId, kind: "SNOOZE" } });
+    return true;
   });
-  if (count === 0) return { ok: false, error: "Não dá para adiar: o orçamento vence em breve ou não está aguardando resposta" };
+  if (!done) return { ok: false, error: "Não dá para adiar: o orçamento vence em breve ou não está aguardando resposta" };
   revalidatePath("/inicio");
   revalidatePath("/orcamentos");
   return { ok: true, data: undefined };

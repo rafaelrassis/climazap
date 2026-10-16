@@ -8,6 +8,11 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum NudgeKind {
+  NUDGE
+  SNOOZE
+}
+
 enum QuoteStatus {
   DRAFT
   SENT
@@ -42,6 +47,7 @@ model User {
   customers           Customer[]
   pushSubscriptions   PushSubscription[]
   passwordResetTokens PasswordResetToken[]
+  nudges              QuoteNudge[]
 }
 
 // userId null = serviço padrão do sistema (seed); preenchido = catálogo do usuário
@@ -96,6 +102,7 @@ model Quote {
   customer Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items    QuoteItem[]
   photos   QuotePhoto[]
+  nudges   QuoteNudge[]
 
   @@unique([userId, number])
   @@index([userId, status, createdAt])
@@ -186,4 +193,20 @@ model QuotePhoto {
   quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
 
   @@index([quoteId, position])
+}
+
+// Histórico de cobranças (NUDGE) e adiamentos (SNOOZE) do técnico; alimenta o funil dos últimos 30 dias.
+// Quote.lastNudgeAt continua sendo o que esconde o orçamento das listas.
+model QuoteNudge {
+  id        String    @id @default(cuid())
+  quoteId   String
+  userId    String
+  kind      NudgeKind
+  createdAt DateTime  @default(now())
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind, createdAt])
+  @@index([quoteId])
 }
