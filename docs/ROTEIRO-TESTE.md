@@ -24,7 +24,7 @@ Técnicos que fazem orçamento toda semana e hoje mandam por WhatsApp (mensagem,
 |---|---|---|
 | 1 | Criar conta, cadastrar logo e escolher a cor, ajustar o preço de 3 serviços | Entendeu `Serviços` e `Ajustes`? Achou o que procurava? |
 | 1-2 | Criar e enviar 1 orçamento real pelo app | Tempo até enviar (meta: abaixo de 60 s); onde errou |
-| 2-3 | Ver se o cliente abriu e aprovou; testar "Cobrar resposta" | Notificação chegou? Entendeu o status? |
+| 2-3 | Ver se o cliente abriu e aprovou; se não respondeu, usar **Cobrar** (e **Adiar 3 dias** quando o cliente pedir tempo) | Notificação chegou? Entendeu o status e o selo "vence em até 24h"? Mexeu na mensagem de cobrança em `Ajustes`? |
 | 3-5 | Aprovar um orçamento e conferir Pix, PDF e lembrete de manutenção | Cliente conseguiu pagar com o QR? |
 | 5-7 | Usar para todos os orçamentos da semana | Voltou ao método antigo? Por quê? |
 
@@ -37,6 +37,7 @@ Sem missões. Deixe usar e **não lembre**. O número que importa: quantos orça
 - Orçamentos criados por semana, por técnico.
 - Enviados que foram abertos, aprovados, recusados, sem resposta.
 - Quem voltou na semana 2 sem você pedir.
+- Quantos orçamentos cada técnico cobrou pelo botão **Cobrar** e quantos foram aprovados depois (é correlação, não prova).
 - Erros que chegaram no seu e-mail de alerta.
 
 Consultas úteis no banco (somente leitura):
@@ -45,6 +46,10 @@ Consultas úteis no banco (somente leitura):
 select u.email, q.status, count(*) from "Quote" q join "User" u on u.id = q."userId" group by 1, 2 order by 1, 2;
 -- tempo entre cadastro e primeiro orçamento
 select u.email, min(q."createdAt") - u."createdAt" as ate_o_primeiro from "User" u left join "Quote" q on q."userId" = u.id group by u.id;
+-- cobranças e adiamentos por técnico (últimos 14 dias)
+select u.email, n.kind, count(*) from "QuoteNudge" n join "User" u on u.id = n."userId" where n."createdAt" > now() - interval '14 days' group by 1, 2 order by 1, 2;
+-- orçamentos aprovados depois de uma cobrança
+select u.email, count(distinct q.id) as aprovados_apos_cobranca from "Quote" q join "User" u on u.id = q."userId" join "QuoteNudge" n on n."quoteId" = q.id and n.kind = 'NUDGE' and n."createdAt" < q."respondedAt" where q.status = 'APPROVED' group by 1;
 ```
 
 ## Perguntas finais (por ligação, 15 minutos)
@@ -58,6 +63,7 @@ select u.email, min(q."createdAt") - u."createdAt" as ate_o_primeiro from "User"
 - **Voltaram sozinhos e criaram vários orçamentos:** o produto funciona. Próximo: plano pago e indicação.
 - **Cadastraram e sumiram:** o problema é o primeiro uso. Reveja onboarding antes de qualquer recurso novo.
 - **Usaram mas voltaram ao WhatsApp puro:** descubra o que o WhatsApp faz mais rápido e traga para o app.
-- **Ninguém abriu o link do cliente:** o problema é a mensagem enviada. Teste outros textos em `Ajustes`.
+- **Ninguém abriu o link do cliente:** o problema é a mensagem enviada. Teste outros textos em `Ajustes` (mensagem do orçamento e mensagem de cobrança).
+- **Cobraram pouco ou nada:** o botão não está no lugar certo ou o hábito não pegou. Pergunte como acompanham quem não respondeu hoje.
 
 Anote tudo (mesmo as reclamações pequenas) em uma planilha: técnico, data, o que aconteceu, gravidade. Padrões que se repetem em 3 técnicos viram prioridade.
