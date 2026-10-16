@@ -1,0 +1,39 @@
+import { describe, expect, it } from "vitest";
+import { daysUntilExpiry, expiryLabel, followUpMessage, nudgedLabel } from "@/lib/followup";
+
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+const now = new Date("2026-10-16T15:00:00Z");
+const at = (ms: number) => new Date(now.getTime() + ms);
+
+describe("followup", () => {
+  it("dias até vencer: sem prazo = null, vencido = 0, arredonda para cima", () => {
+    expect(daysUntilExpiry(null, now)).toBeNull();
+    expect(daysUntilExpiry(at(-1), now)).toBe(0);
+    expect(daysUntilExpiry(at(HOUR), now)).toBe(1);
+    expect(daysUntilExpiry(at(DAY), now)).toBe(1);
+    expect(daysUntilExpiry(at(DAY + 1), now)).toBe(2);
+  });
+
+  it("selo de vencimento só nas últimas 24h", () => {
+    expect(expiryLabel(null, now)).toBeNull();
+    expect(expiryLabel(at(2 * DAY), now)).toBeNull();
+    expect(expiryLabel(at(DAY), now)).toBe("vence em até 24h");
+    expect(expiryLabel(at(-HOUR), now)).toBe("vence hoje");
+  });
+
+  it("mensagem de urgência só quando vence em até 24h", () => {
+    const base = { customerName: "Maria", number: 7 };
+    expect(followUpMessage({ ...base, validUntil: at(3 * DAY) }, now)).toContain("Conseguiu ver o orçamento #7");
+    expect(followUpMessage({ ...base, validUntil: null }, now)).toContain("Conseguiu ver o orçamento #7");
+    expect(followUpMessage({ ...base, validUntil: at(HOUR) }, now)).toContain("vence em breve");
+  });
+
+  it("label de cobrança: hoje, há Xd e adiado (data futura + 48h)", () => {
+    expect(nudgedLabel(null, now)).toBeNull();
+    expect(nudgedLabel(at(-HOUR), now)).toBe("cobrado hoje");
+    expect(nudgedLabel(at(-3 * DAY), now)).toBe("cobrado há 3d");
+    // adiado em 16/10: lastNudgeAt = 17/10 15:00Z, volta 48h depois = 19/10
+    expect(nudgedLabel(at(DAY), now)).toBe("adiado até 19/10");
+  });
+});
