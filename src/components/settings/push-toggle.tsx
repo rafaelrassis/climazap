@@ -46,6 +46,8 @@ export function PushToggle() {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
           setState(permission === "denied" ? "denied" : "off");
+          if (permission === "denied") toast.error("Permissão de notificação negada");
+          else toast.error("Autorize a notificação para ativar os avisos");
           return;
         }
         const reg = await navigator.serviceWorker.ready;
