@@ -17,6 +17,13 @@ function section(title: string, all: string[]): Section | null {
 // Respeita User.emailDigest (descadastro em /ajustes). Sem nada a mostrar, não envia.
 export async function sendWeeklyDigest(now = new Date()): Promise<{ users: number; sent: number }> {
   const staleSince = new Date(now.getTime() - 2 * DAY_MS);
+  // sem resposta há 2+ dias, ainda válido e não cobrado nas últimas 48h
+  const waitingFilter = {
+    status: "SENT" as const,
+    sentAt: { lte: staleSince },
+    validUntil: { gt: now },
+    OR: [{ lastNudgeAt: null }, { lastNudgeAt: { lte: staleSince } }],
+  };
   const users = await db.user.findMany({
     where: {
       emailDigest: true,
@@ -24,7 +31,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
         some: {
           OR: [
             { status: "APPROVED", reminderAt: { lte: now }, reminderDoneAt: null },
-            { status: "SENT", sentAt: { lte: staleSince }, validUntil: { gt: now } },
+            waitingFilter,
           ],
         },
       },
@@ -36,7 +43,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
         where: {
           OR: [
             { status: "APPROVED", reminderAt: { lte: now }, reminderDoneAt: null },
-            { status: "SENT", sentAt: { lte: staleSince }, validUntil: { gt: now } },
+            waitingFilter,
           ],
         },
         orderBy: { createdAt: "asc" },
