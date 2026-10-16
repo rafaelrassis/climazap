@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { expiryLabel, followUpMessage } from "@/lib/followup";
 import { StatusBadge } from "@/components/quotes/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,8 +16,18 @@ export default async function OrcamentosPage() {
     where: { userId },
     orderBy: { createdAt: "desc" },
     take: 50,
-    select: { id: true, publicId: true, number: true, customerName: true, status: true, totalCents: true },
+    select: {
+      id: true,
+      number: true,
+      customerName: true,
+      customerPhone: true,
+      status: true,
+      totalCents: true,
+      validUntil: true,
+    },
   });
+
+  const now = new Date();
 
   return (
     <div className="space-y-3">
@@ -31,19 +43,29 @@ export default async function OrcamentosPage() {
       )}
 
       {quotes.map((q) => (
-        <Link key={q.id} href={`/orcamentos/${q.id}`} className="block">
-          <Card>
-            <CardContent className="flex items-center justify-between gap-3 p-3">
+        <Card key={q.id}>
+          <CardContent className="flex items-center gap-3 p-3">
+            <Link href={`/orcamentos/${q.id}`} className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">
                   #{q.number} · {q.customerName}
                 </p>
-                <StatusBadge status={q.status} className="mt-1" />
+                <div className="mt-1 flex items-center gap-2">
+                  <StatusBadge status={q.status} />
+                  {q.status === "SENT" && expiryLabel(q.validUntil, now) && (
+                    <span className="text-xs font-bold text-warning">{expiryLabel(q.validUntil, now)}</span>
+                  )}
+                </div>
               </div>
               <p className="shrink-0 text-sm font-semibold">{formatBRL(q.totalCents)}</p>
-            </CardContent>
-          </Card>
-        </Link>
+            </Link>
+            {q.status === "SENT" && (
+              <Button asChild className="h-11 shrink-0 bg-success px-4 text-white hover:bg-success/90">
+                <a href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))}>Cobrar</a>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
