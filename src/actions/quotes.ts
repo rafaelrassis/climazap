@@ -474,3 +474,18 @@ export async function markQuoteNudged(quoteId: string): Promise<ActionResult> {
   revalidatePath("/orcamentos");
   return { ok: true, data: undefined };
 }
+
+// Adia a cobrança em 3 dias: lastNudgeAt no futuro (hoje + 1 dia) faz o orçamento voltar às listas 48h depois
+export async function snoozeQuoteFollowUp(quoteId: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const id = z.string().min(1).max(64).safeParse(quoteId);
+  if (!id.success) return { ok: false, error: "Orçamento inválido" };
+  const { count } = await db.quote.updateMany({
+    where: { id: id.data, userId, status: "SENT" },
+    data: { lastNudgeAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+  });
+  if (count === 0) return { ok: false, error: "Orçamento não está aguardando resposta" };
+  revalidatePath("/inicio");
+  revalidatePath("/orcamentos");
+  return { ok: true, data: undefined };
+}

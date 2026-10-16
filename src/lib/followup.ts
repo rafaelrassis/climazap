@@ -21,8 +21,12 @@ export function followUpMessage(q: { customerName: string; number: number; valid
   return `Oi, ${q.customerName}! Conseguiu ver o orçamento #${q.number}? Qualquer dúvida é só falar.`;
 }
 
+const fmtShort = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" });
+
+// lastNudgeAt no futuro = cobrança adiada (volta às listas 48h depois dessa data)
 export function nudgedLabel(lastNudgeAt: Date | null, now: Date): string | null {
   if (!lastNudgeAt) return null;
+  if (lastNudgeAt.getTime() > now.getTime()) return `adiado até ${fmtShort.format(new Date(lastNudgeAt.getTime() + 2 * DAY_MS))}`;
   const days = Math.floor((now.getTime() - lastNudgeAt.getTime()) / DAY_MS);
   return days <= 0 ? "cobrado hoje" : `cobrado há ${days}d`;
 }

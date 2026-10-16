@@ -11,6 +11,7 @@ import { expiryLabel, followUpMessage } from "@/lib/followup";
 import { cn, getInitials } from "@/lib/utils";
 import { CompleteReminderButton } from "@/components/quotes/complete-reminder-button";
 import { NudgeButton } from "@/components/quotes/nudge-button";
+import { SnoozeButton } from "@/components/quotes/snooze-button";
 import { StatusBadge } from "@/components/quotes/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -235,7 +236,8 @@ export default async function InicioPage() {
               <h2 className="text-[15px] font-bold">Sem resposta ou vencendo</h2>
               {stale.map((q) => (
                 <Card key={q.id}>
-                  <CardContent className="flex items-center gap-3 p-3">
+                  <CardContent className="flex flex-col gap-1 p-3">
+                    <div className="flex items-center gap-3">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-info-bg text-xs font-extrabold text-info">
                       {getInitials(q.customerName)}
                     </span>
@@ -251,6 +253,10 @@ export default async function InicioPage() {
                       </span>
                     </Link>
                     <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))} nudged={!!q.lastNudgeAt} />
+                    </div>
+                    <div className="flex justify-end">
+                      <SnoozeButton quoteId={q.id} />
+                    </div>
                   </CardContent>
                 </Card>
               ))}
