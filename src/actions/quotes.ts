@@ -481,10 +481,16 @@ export async function snoozeQuoteFollowUp(quoteId: string): Promise<ActionResult
   const id = z.string().min(1).max(64).safeParse(quoteId);
   if (!id.success) return { ok: false, error: "Orçamento inválido" };
   const { count } = await db.quote.updateMany({
-    where: { id: id.data, userId, status: "SENT" },
+    // não adia quem vence em até 24h: ele sumiria da lista e poderia expirar sem cobrança
+    where: {
+      id: id.data,
+      userId,
+      status: "SENT",
+      OR: [{ validUntil: null }, { validUntil: { gt: new Date(Date.now() + 24 * 60 * 60 * 1000) } }],
+    },
     data: { lastNudgeAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
   });
-  if (count === 0) return { ok: false, error: "Orçamento não está aguardando resposta" };
+  if (count === 0) return { ok: false, error: "Não dá para adiar: o orçamento vence em breve ou não está aguardando resposta" };
   revalidatePath("/inicio");
   revalidatePath("/orcamentos");
   return { ok: true, data: undefined };

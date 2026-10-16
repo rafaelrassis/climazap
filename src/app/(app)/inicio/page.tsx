@@ -254,9 +254,11 @@ export default async function InicioPage() {
                     </Link>
                     <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))} nudged={!!q.lastNudgeAt} />
                     </div>
-                    <div className="flex justify-end">
-                      <SnoozeButton quoteId={q.id} />
-                    </div>
+                    {!expiryLabel(q.validUntil, now) && (
+                      <div className="flex justify-end">
+                        <SnoozeButton quoteId={q.id} />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
