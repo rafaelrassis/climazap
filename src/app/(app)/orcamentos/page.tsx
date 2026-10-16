@@ -5,6 +5,7 @@ import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { expiryLabel, followUpMessage, nudgedLabel } from "@/lib/followup";
+import { getFollowUpContext } from "@/lib/followup-context";
 import { NudgeButton } from "@/components/quotes/nudge-button";
 import { StatusBadge } from "@/components/quotes/status-badge";
 import { Button } from "@/components/ui/button";
@@ -25,11 +26,13 @@ export default async function OrcamentosPage() {
       status: true,
       totalCents: true,
       validUntil: true,
+      publicId: true,
       lastNudgeAt: true,
     },
   });
 
   const now = new Date();
+  const followUpCtx = await getFollowUpContext(userId);
 
   return (
     <div className="space-y-3">
@@ -65,7 +68,7 @@ export default async function OrcamentosPage() {
               <p className="shrink-0 text-sm font-semibold">{formatBRL(q.totalCents)}</p>
             </Link>
             {q.status === "SENT" && (
-              <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))} nudged={!!q.lastNudgeAt} />
+              <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now, followUpCtx))} nudged={!!q.lastNudgeAt} />
             )}
           </CardContent>
         </Card>

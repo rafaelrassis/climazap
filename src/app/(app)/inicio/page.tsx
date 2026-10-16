@@ -9,6 +9,7 @@ import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { expiryLabel, followUpMessage } from "@/lib/followup";
 import { followUpWhere } from "@/lib/followup-queries";
+import { getFollowUpContext } from "@/lib/followup-context";
 import { getNudgeFunnel } from "@/lib/nudge-funnel";
 import { cn, getInitials } from "@/lib/utils";
 import { CompleteReminderButton } from "@/components/quotes/complete-reminder-button";
@@ -73,7 +74,7 @@ export default async function InicioPage() {
   const monthStart = monthStartBR(now);
   const since30 = new Date(now.getTime() - 30 * DAY_MS);
 
-  const [pending, approvedMonth, receivable, answered30, approved30, stale, due, recent, funnel] = await Promise.all([
+  const [pending, approvedMonth, receivable, answered30, approved30, stale, due, recent, funnel, followUpCtx] = await Promise.all([
     db.quote.aggregate({ where: { userId, status: "SENT" }, _count: true, _sum: { totalCents: true } }),
     db.quote.aggregate({
       where: { userId, status: "APPROVED", respondedAt: { gte: monthStart } },
@@ -99,6 +100,7 @@ export default async function InicioPage() {
         totalCents: true,
         sentAt: true,
         validUntil: true,
+        publicId: true,
         lastNudgeAt: true,
       },
     }),
@@ -115,6 +117,7 @@ export default async function InicioPage() {
       select: { id: true, number: true, customerName: true, status: true, totalCents: true },
     }),
     getNudgeFunnel(userId, now),
+    getFollowUpContext(userId),
   ]);
 
   const rate = answered30 > 0 ? Math.round((approved30 / answered30) * 100) : null;
@@ -242,7 +245,7 @@ export default async function InicioPage() {
                         )}
                       </span>
                     </Link>
-                    <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now))} nudged={!!q.lastNudgeAt} />
+                    <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now, followUpCtx))} nudged={!!q.lastNudgeAt} />
                     </div>
                     {!expiryLabel(q.validUntil, now) && (
                       <div className="flex justify-end">

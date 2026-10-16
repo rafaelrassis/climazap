@@ -10,6 +10,8 @@ import { PushToggle } from "@/components/settings/push-toggle";
 import { LogoForm } from "@/components/settings/logo-form";
 import { EmailDigestToggle } from "@/components/settings/email-digest-toggle";
 import { WaTemplateForm } from "@/components/settings/wa-template-form";
+import { NudgeTemplateForm } from "@/components/settings/nudge-template-form";
+import { DEFAULT_NUDGE_TEMPLATE } from "@/lib/followup";
 
 export const metadata = { title: "Ajustes" };
 
@@ -17,7 +19,7 @@ export default async function AjustesPage() {
   const userId = await requireUserId();
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { name: true, companyName: true, waTemplate: true, emailDigest: true, logoUpdatedAt: true, pixKey: true, pixKeyType: true, pixCity: true, brandColor: true },
+    select: { name: true, companyName: true, waTemplate: true, nudgeTemplate: true, emailDigest: true, logoUpdatedAt: true, pixKey: true, pixKeyType: true, pixCity: true, brandColor: true },
   });
 
   return (
@@ -29,6 +31,7 @@ export default async function AjustesPage() {
       <PushToggle />
       <EmailDigestToggle initial={user.emailDigest} />
       <WaTemplateForm initial={user.waTemplate ?? DEFAULT_WA_TEMPLATE} sender={user.companyName ?? user.name} />
+      <NudgeTemplateForm initial={user.nudgeTemplate ?? DEFAULT_NUDGE_TEMPLATE} sender={user.companyName ?? user.name} />
       <AccountSection />
       <LegalLinks />
     </div>

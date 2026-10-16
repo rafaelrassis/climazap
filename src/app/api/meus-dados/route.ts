@@ -17,6 +17,7 @@ export async function GET() {
       phone: true,
       companyName: true,
       waTemplate: true,
+      nudgeTemplate: true,
       emailDigest: true,
       termsAcceptedAt: true,
       createdAt: true,

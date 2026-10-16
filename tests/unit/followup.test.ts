@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { daysUntilExpiry, expiryLabel, followUpMessage, nudgedLabel } from "@/lib/followup";
+import { nudgeTemplateSchema } from "@/lib/validations/auth";
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -22,11 +23,26 @@ describe("followup", () => {
     expect(expiryLabel(at(-HOUR), now)).toBe("vence hoje");
   });
 
-  it("mensagem de urgência só quando vence em até 24h", () => {
-    const base = { customerName: "Maria", number: 7 };
-    expect(followUpMessage({ ...base, validUntil: at(3 * DAY) }, now)).toContain("Conseguiu ver o orçamento #7");
-    expect(followUpMessage({ ...base, validUntil: null }, now)).toContain("Conseguiu ver o orçamento #7");
-    expect(followUpMessage({ ...base, validUntil: at(HOUR) }, now)).toContain("vence em breve");
+  it("mensagem: padrão, modelo do técnico e urgência (que ignora o modelo)", () => {
+    const base = { customerName: "Maria", number: 7, totalCents: 45000, publicId: "abc-123" };
+    const ctx = { template: null, tecnico: "Zé Frio", baseUrl: "https://fechouclima.com.br/" };
+    const normal = followUpMessage({ ...base, validUntil: at(3 * DAY) }, now, ctx);
+    expect(normal).toContain("Conseguiu ver o orçamento #7");
+    expect(normal).toContain("https://fechouclima.com.br/o/abc-123");
+    expect(followUpMessage({ ...base, validUntil: null }, now, ctx)).toContain("Conseguiu ver o orçamento #7");
+
+    const custom = { ...ctx, template: "{cliente}, {valor} do #{numero}? Abs, {tecnico}. {link}" };
+    expect(followUpMessage({ ...base, validUntil: at(3 * DAY) }, now, custom)).toMatch(/^Maria, R\$\s?450,00 do #7\? Abs, Zé Frio\. https:\/\/fechouclima\.com\.br\/o\/abc-123$/);
+
+    const urgent = followUpMessage({ ...base, validUntil: at(HOUR) }, now, custom);
+    expect(urgent).toContain("vence em breve");
+    expect(urgent).toContain("/o/abc-123");
+  });
+
+  it("modelo de cobrança: 10 a 400 caracteres", () => {
+    expect(nudgeTemplateSchema.safeParse({ template: "curto" }).success).toBe(false);
+    expect(nudgeTemplateSchema.safeParse({ template: "Oi {cliente}, tudo bem?" }).success).toBe(true);
+    expect(nudgeTemplateSchema.safeParse({ template: "x".repeat(401) }).success).toBe(false);
   });
 
   it("label de cobrança: hoje, há Xd e adiado (data futura + 48h)", () => {

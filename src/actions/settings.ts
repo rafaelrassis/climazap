@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
 import { DEFAULT_BRAND, isBrandColor } from "@/lib/brand";
 import { MAX_LOGO_BYTES, detectLogoType } from "@/lib/logo";
-import { waTemplateSchema } from "@/lib/validations/auth";
+import { nudgeTemplateSchema, waTemplateSchema } from "@/lib/validations/auth";
 import { pixSchema } from "@/lib/validations/pix";
 import { pushSubscriptionSchema, type PushSubscriptionInput } from "@/lib/validations/push";
 import type { ActionResult } from "@/types/action";
@@ -26,6 +26,29 @@ export async function resetWaTemplate(): Promise<ActionResult> {
   const userId = await requireUserId();
   await db.user.update({ where: { id: userId }, data: { waTemplate: null } });
   revalidatePath("/ajustes");
+  return { ok: true, data: undefined };
+}
+
+export async function saveNudgeTemplate(template: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const parsed = nudgeTemplateSchema.safeParse({ template });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Mensagem inválida" };
+  }
+  await db.user.update({ where: { id: userId }, data: { nudgeTemplate: parsed.data.template } });
+  revalidatePath("/ajustes");
+  revalidatePath("/inicio");
+  revalidatePath("/orcamentos");
+  return { ok: true, data: undefined };
+}
+
+// Volta ao modelo padrão de cobrança
+export async function resetNudgeTemplate(): Promise<ActionResult> {
+  const userId = await requireUserId();
+  await db.user.update({ where: { id: userId }, data: { nudgeTemplate: null } });
+  revalidatePath("/ajustes");
+  revalidatePath("/inicio");
+  revalidatePath("/orcamentos");
   return { ok: true, data: undefined };
 }
 

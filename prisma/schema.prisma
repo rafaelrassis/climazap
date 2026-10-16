@@ -29,6 +29,7 @@ model User {
   phone           String?
   companyName     String?
   waTemplate      String?
+  nudgeTemplate   String?
   emailDigest     Boolean   @default(true)
   termsAcceptedAt DateTime?
   pixKey          String?
