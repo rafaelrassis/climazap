@@ -4,13 +4,12 @@ import { db } from "@/lib/db";
 import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
-import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
 import { CopyButton } from "@/components/copy-button";
 import { buildPixPayload } from "@/lib/pix";
 import { PhotoManager } from "@/components/quotes/photo-manager";
 import { MaintenanceReminder } from "@/components/quotes/maintenance-reminder";
 import { QuoteActions } from "@/components/quotes/quote-actions";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/quotes/status-badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 const fmtDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
@@ -41,10 +40,10 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
       <header className="space-y-1">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-lg font-semibold">Orçamento #{q.number}</h1>
-          <Badge variant={STATUS_VARIANT[status]}>
-            {STATUS_LABEL[status]}
-            {status === "APPROVED" && q.paidAt ? " · Pago" : ""}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <StatusBadge status={status} />
+            {status === "APPROVED" && q.paidAt && <span className="text-xs font-semibold text-muted-foreground">· Pago</span>}
+          </div>
         </div>
         <p className="text-sm">{q.customerName}</p>
         {q.title && <p className="text-sm text-muted-foreground">{q.title}</p>}

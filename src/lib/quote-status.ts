@@ -15,3 +15,11 @@ export const STATUS_VARIANT: Record<QuoteStatus, "default" | "secondary" | "dest
   REJECTED: "destructive",
   EXPIRED: "outline",
 };
+
+export const STATUS_BADGE_STYLE: Record<QuoteStatus, string> = {
+  DRAFT: "bg-warning-bg text-warning",
+  SENT: "bg-info-bg text-info",
+  APPROVED: "bg-success-bg text-success",
+  REJECTED: "bg-error-bg text-error",
+  EXPIRED: "bg-expired-bg text-expired",
+};

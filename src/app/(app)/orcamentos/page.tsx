@@ -3,8 +3,7 @@ import { db } from "@/lib/db";
 import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
-import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/quote-status";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/quotes/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -39,9 +38,7 @@ export default async function OrcamentosPage() {
                 <p className="truncate text-sm font-medium">
                   #{q.number} · {q.customerName}
                 </p>
-                <Badge variant={STATUS_VARIANT[q.status]} className="mt-1">
-                  {STATUS_LABEL[q.status]}
-                </Badge>
+                <StatusBadge status={q.status} className="mt-1" />
               </div>
               <p className="shrink-0 text-sm font-semibold">{formatBRL(q.totalCents)}</p>
             </CardContent>
