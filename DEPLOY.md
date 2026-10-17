@@ -35,6 +35,13 @@ Adicione `fechouclima.com.br` ao projeto na Vercel e aponte o DNS como ela indic
 - `/ajustes` > "Avisos no celular" > Ativar (no iPhone, instale o app na tela de início antes). Aprove um orçamento em outra aba e confira a notificação.
 - Segunda-feira seguinte: logs do cron `/api/cron/lembretes` na Vercel.
 
+## 5. Métricas de validação
+`npm run metricas` (leitura, sem gravar nada) mostra ativação/retenção por coorte semanal, o funil enviado → visto → aprovado e o efeito da cobrança. Rode de fora da Vercel, com a URL **direta** do Neon (a pooled funciona, mas a direta evita esgotar conexões do pool em consultas maiores):
+```bash
+DATABASE_URL="<direta>" npm run metricas
+```
+Por padrão exclui e-mails `@fechouclima.com.br` e `demo@...` (contas de teste); para mudar o filtro, defina `METRICAS_EXCLUIR` com outra regex.
+
 ## Antes de divulgar
 - Revise os textos de `/privacidade` e `/termos` com um advogado (são um modelo, não parecer jurídico) e confirme o e-mail de contato.
 - Pix: o app só gera o código a partir da chave que o técnico cadastra; confira com um Pix real de R$ 0,01 antes de usar.
