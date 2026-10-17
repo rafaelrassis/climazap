@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, prisma, seedTechnician } from "./helpers";
+import { login, newClientContext, prisma, seedTechnician, uniqueIp } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
@@ -34,7 +34,7 @@ test("Pix: técnico configura em Ajustes; cliente só vê depois de aprovar, com
   await expect(page.getByLabel("Chave Pix")).toHaveValue("+5511999990000");
 
   // antes da aprovação o cliente não vê Pix
-  const ctx = await browser.newContext({ permissions: ["clipboard-read", "clipboard-write"] });
+  const ctx = await newClientContext(browser, { permissions: ["clipboard-read", "clipboard-write"] });
   const client = await ctx.newPage();
   await client.goto(`/o/${t.publicId}`);
   await expect(client.getByText("Pagamento via Pix")).toHaveCount(0);
@@ -66,6 +66,7 @@ test("Pix: técnico configura em Ajustes; cliente só vê depois de aprovar, com
 });
 
 test("sem Pix configurado, orçamento aprovado não mostra bloco de pagamento", async ({ page }) => {
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": uniqueIp() });
   const t = await seedTechnician("nopix", "APPROVED");
   await page.goto(`/o/${t.publicId}`);
   await expect(page.getByText(/Aprovado/).first()).toBeVisible();

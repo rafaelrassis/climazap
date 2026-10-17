@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { newClientContext } from "./helpers";
 
 // Fluxo que gera dinheiro: técnico cria orçamento -> envia -> cliente aprova pelo link -> técnico marca como pago
 test("criar, enviar, aprovar pelo link público e marcar como pago", async ({ page, browser }) => {
@@ -43,7 +44,7 @@ test("criar, enviar, aprovar pelo link público e marcar como pago", async ({ pa
   expect(publicLink).toBeTruthy();
 
   // 5. Cliente (sem login, contexto novo) vê e aprova
-  const clientCtx = await browser.newContext();
+  const clientCtx = await newClientContext(browser);
   const client = await clientCtx.newPage();
   await client.goto(publicLink!);
   await expect(client.getByText("Instalação de split 12.000 BTUs")).toBeVisible();

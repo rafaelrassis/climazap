@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, prisma, seedTechnician } from "./helpers";
+import { login, newClientContext, prisma, seedTechnician } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
@@ -30,7 +30,7 @@ test("conteúdo com HTML/script é exibido como texto em todas as telas (sem XSS
   await expect(page.locator("main").getByText(XSS).first()).toBeVisible(); // o texto aparece literal
 
   // página pública, sem login
-  const ctx = await browser.newContext();
+  const ctx = await newClientContext(browser);
   const pub = await ctx.newPage();
   pub.on("dialog", (d) => {
     dialogs.push(d.message());

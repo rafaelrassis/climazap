@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, prisma, seedTechnician } from "./helpers";
+import { login, newClientContext, prisma, seedTechnician } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
@@ -34,7 +34,7 @@ test("visto: beacon no link público, selo no painel e variante na cobrança", a
   await expect(page.getByText("não abriu o link")).toHaveCount(2);
 
   // 2. cliente (sem login, outra aba) abre o link de Aberto Alfa
-  const clientCtx = await browser.newContext();
+  const clientCtx = await newClientContext(browser);
   const client = await clientCtx.newPage();
   await client.goto(`/o/${t.publicId}`);
   await expect(client.getByText("Aprovar orçamento")).toBeVisible();
@@ -56,18 +56,11 @@ test("visto: beacon no link público, selo no painel e variante na cobrança", a
 
   // 6. painel: Cobrar de quem nunca abriu usa a variante; quem abriu usa a mensagem padrão
   await page.goto("/inicio");
-  let waUrl = "";
-  await page.route("https://wa.me/**", (route) => {
-    waUrl = route.request().url();
-    return route.abort();
-  });
-  await page
-    .locator("section", { has: page.getByRole("heading", { name: "Sem resposta ou vencendo" }) })
-    .locator("> div")
-    .filter({ hasText: "Nunca Beta" })
-    .getByRole("link", { name: /^Cobrar/ })
-    .click();
-  await expect.poll(() => waUrl).not.toBe("");
-  const text = new URL(waUrl).searchParams.get("text") ?? "";
-  expect(text).toContain("Conseguiu abrir o link?");
+  const section = page.locator("section", { has: page.getByRole("heading", { name: "Sem resposta ou vencendo" }) });
+  const hrefNunca = await section.locator("> div").filter({ hasText: "Nunca Beta" }).getByRole("link", { name: /^Cobrar/ }).getAttribute("href");
+  const hrefAberto = await section.locator("> div").filter({ hasText: "Aberto Alfa" }).getByRole("link", { name: /^Cobrar/ }).getAttribute("href");
+  const textNunca = new URL(hrefNunca!).searchParams.get("text") ?? "";
+  const textAberto = new URL(hrefAberto!).searchParams.get("text") ?? "";
+  expect(textNunca).toContain("Conseguiu abrir o link?");
+  expect(textAberto).toContain("Conseguiu ver o orçamento #1");
 });

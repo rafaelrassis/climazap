@@ -167,8 +167,11 @@ test("cobrar e adiar: painel, histórico, modelo editável e layout em 360px", a
   // vencendo em breve continua com a mensagem de urgência, mesmo com modelo próprio
   expect((await nudgeLink(page, "Beto Beta")).text).toContain("vence em breve");
 
+  // dois formulários de ajustes têm um botão "Voltar ao padrão" com o mesmo texto; este é o da
+  // mensagem de cobrança, identificado pelo campo do mesmo formulário
   await page.goto("/ajustes");
-  await page.getByRole("button", { name: "Voltar ao padrão" }).click();
+  const nudgeSection = page.locator("div.space-y-3", { has: page.getByLabel("Mensagem enviada pelo botão Cobrar") });
+  await nudgeSection.getByRole("button", { name: "Voltar ao padrão" }).click();
   await expect(page.getByText("Voltou ao modelo padrão")).toBeVisible();
   await expect(page.getByLabel("Mensagem enviada pelo botão Cobrar")).toHaveValue(/Conseguiu ver o orçamento #\{numero\}/);
 

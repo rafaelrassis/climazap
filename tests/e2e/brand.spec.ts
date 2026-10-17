@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, prisma, seedTechnician } from "./helpers";
+import { login, newClientContext, prisma, seedTechnician } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
@@ -21,7 +21,7 @@ test("cor da marca: escolhida em Ajustes, aplicada no botão de aprovar, no nome
   await expect(page.getByRole("radio", { name: "Verde" })).toHaveAttribute("aria-checked", "true");
   expect((await prisma.user.findUniqueOrThrow({ where: { id: t.userId } })).brandColor).toBe("#0b6e4f");
 
-  const ctx = await browser.newContext();
+  const ctx = await newClientContext(browser);
   const client = await ctx.newPage();
   await client.goto(`/o/${t.publicId}`);
   const approve = client.getByRole("button", { name: "Aprovar orçamento" });
@@ -37,7 +37,7 @@ test("cor da marca: escolhida em Ajustes, aplicada no botão de aprovar, no nome
 
   // valor fora da paleta no banco (corrompido/legado) cai no padrão, sem quebrar a página
   await prisma.user.update({ where: { id: t.userId }, data: { brandColor: "red;background:url(x)" } });
-  const ctx2 = await browser.newContext();
+  const ctx2 = await newClientContext(browser);
   const c2 = await ctx2.newPage();
   await c2.goto(`/o/${t.publicId}`);
   expect(await c2.getByRole("button", { name: "Aprovar orçamento" }).evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(15, 23, 42)");

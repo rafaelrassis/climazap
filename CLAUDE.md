@@ -56,6 +56,8 @@ Ver `DEPLOY.md`. Migrations em `prisma/migrations` (gerar nova: `npx prisma migr
 ## Cobrança (follow-up)
 `Quote.lastNudgeAt` esconde o orçamento das listas (passado = cobrado, futuro = adiado); `QuoteNudge` (NUDGE/SNOOZE) é o histórico que alimenta o funil de 30 dias. Filtros em `src/lib/followup-queries.ts` (painel e resumo semanal usam os mesmos). Mensagem editável em Ajustes (`User.nudgeTemplate`); orçamento que vence em até 24h usa a mensagem de urgência.
 
+`Quote.viewedAt` registra a 1ª abertura do link público pelo cliente: beacon client-side (`src/components/quotes/view-beacon.tsx`, chamado em `/o/[publicId]`) chama `markQuoteViewed`, porque a página pública tem cache (`revalidate = 300`) e não pode gravar no render do servidor. `viewedLabel` (`src/lib/followup.ts`) mostra "visto"/"não abriu o link" em `/orcamentos`, `/inicio` e no resumo semanal; o detalhe (`/orcamentos/[id]`) mostra "Visto em DD/MM HH:mm". Precedência da mensagem de cobrança: urgência (vence em até 24h) > modelo próprio do técnico (`nudgeTemplate`) > variante por visto (`NOT_VIEWED_NUDGE_TEMPLATE`, só quando não há modelo próprio). Editar o orçamento enviado (volta para `DRAFT`) zera `viewedAt`.
+
 ## Git
 Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nunca commitar `.env`.
 
@@ -63,7 +65,7 @@ Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nun
 Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tarefa: trazer opiniões/riscos curtos e propor ideias novas. Pode discordar. Avisos de segurança/perda de dados podem ser mais longos.
 
 ## Estado atual
-Roadmap concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA com service worker só para push (sem cache offline: app autenticado precisa de dado fresco), web push de aprovação/recusa (`web-push`, VAPID), descadastro do resumo por link assinado, editar/excluir cliente e clientes dormentes, navegação inferior, recuperar senha, LGPD (privacidade, termos, aceite, exportar e excluir conta), alerta de erros por e-mail, PDF do orçamento, Pix (BR Code com QR), fotos do orçamento e cor da marca.
+Roadmap concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA com service worker só para push (sem cache offline: app autenticado precisa de dado fresco), web push de aprovação/recusa (`web-push`, VAPID), descadastro do resumo por link assinado, editar/excluir cliente e clientes dormentes, navegação inferior, recuperar senha, LGPD (privacidade, termos, aceite, exportar e excluir conta), alerta de erros por e-mail, PDF do orçamento, Pix (BR Code com QR), fotos do orçamento, cor da marca e "visto" (SPEC-01: `viewedAt`, selo no painel e variante de cobrança para quem nunca abriu o link).
 
 ## Roadmap
 Concluído. Ideias para depois: plano pago (limites, cobrança, só com técnicos reais usando); fotos e logo em armazenamento de arquivos se o tráfego crescer; fotos no PDF; Sentry se o alerta por e-mail ficar curto; invalidar sessões ao trocar a senha (hoje o JWT vale até expirar); CSP com nonce; Next 16/Tailwind 4/Prisma 7.
@@ -76,3 +78,4 @@ Concluído. Ideias para depois: plano pago (limites, cobrança, só com técnico
 - `sendQuoteViaWhatsApp` marca `SENT` antes do envio real; aceitável porque a aprovação exige `SENT`.
 - Seed nunca deve criar o usuário demo em produção.
 - `revalidate = 300` na página pública: a aprovação chama `revalidatePath`, então o status atualiza na hora.
+- `markQuoteViewed` usa o mesmo rate limit (`public:<ip>`, 20/10min) de aprovar/recusar, por especificação da SPEC-01. Cliente que recarrega a página várias vezes consome do mesmo orçamento; vários clientes atrás do mesmo IP (CGNAT/proxy corporativo) dividem o limite entre visualizar e aprovar. Aceitável por ora (baixo tráfego), mas vale um bucket próprio para visualização se isso incomodar.

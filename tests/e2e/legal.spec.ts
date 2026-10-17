@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { login, prisma, registerTechnician, seedTechnician } from "./helpers";
+import { login, prisma, registerTechnician, seedTechnician, uniqueIp } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
 test("termos e privacidade são públicos e linkados do login, cadastro e do orçamento", async ({ page }) => {
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": uniqueIp() });
   await page.goto("/login");
   await page.getByRole("link", { name: "Privacidade" }).click();
   await expect(page.getByRole("heading", { name: "Política de Privacidade" })).toBeVisible();

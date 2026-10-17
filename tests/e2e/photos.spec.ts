@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, prisma, seedTechnician } from "./helpers";
+import { login, newClientContext, prisma, seedTechnician } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
@@ -38,7 +38,7 @@ test("fotos: técnico adiciona (JPEG reduzido no navegador), vê o limite de 4, 
   await expect(page.getByRole("button", { name: "Limite de fotos atingido" })).toBeDisabled();
 
   // rascunho: o cliente ainda não vê as fotos
-  const ctx = await browser.newContext();
+  const ctx = await newClientContext(browser);
   const client = await ctx.newPage();
   await client.goto(`/o/${t.publicId}`);
   await expect(client.getByAltText(/Foto \d do orçamento/)).toHaveCount(0);

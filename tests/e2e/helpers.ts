@@ -16,6 +16,7 @@ export async function registerTechnician(page: Page, label: string) {
   await page.waitForURL(/\/inicio$/);
 }
 
+import type { Browser } from "@playwright/test";
 import { PrismaClient, type QuoteStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -53,6 +54,20 @@ export async function seedTechnician(label: string, status: QuoteStatus, extra: 
     },
   });
   return { email, userId: user.id, customerId: customer.id, quoteId: quote.id, publicId: quote.publicId, customerName: customer.name };
+}
+
+// IP único por chamada: evita que visitas anônimas a /o/[publicId] caiam todas no mesmo bucket
+// "unknown" do rate limit público (o beacon de "visto" conta nele, assim como aprovar/recusar).
+export function uniqueIp() {
+  n += 1;
+  return `198.51.101.${n}`;
+}
+
+// Contexto de cliente anônimo (sem login) para abrir /o/[publicId], já com IP próprio.
+export async function newClientContext(browser: Browser, options?: Parameters<Browser["newContext"]>[0]) {
+  const ctx = await browser.newContext(options);
+  await ctx.setExtraHTTPHeaders({ "x-forwarded-for": uniqueIp() });
+  return ctx;
 }
 
 export async function login(page: Page, email: string) {

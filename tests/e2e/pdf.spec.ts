@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { prisma, seedTechnician } from "./helpers";
+import { prisma, seedTechnician, uniqueIp } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
 test("página pública oferece o PDF só depois de enviado; o arquivo é um PDF válido", async ({ page }) => {
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": uniqueIp() });
   const sent = await seedTechnician("pdf-sent", "SENT");
   await page.goto(`/o/${sent.publicId}`);
   const link = page.getByRole("link", { name: "Baixar PDF" });

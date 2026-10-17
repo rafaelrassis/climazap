@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, prisma, seedTechnician } from "./helpers";
+import { login, newClientContext, prisma, seedTechnician } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
@@ -8,7 +8,7 @@ test.afterAll(async () => {
 test("cliente recusa com motivo pelo link público e o técnico vê o motivo", async ({ page, browser }) => {
   const t = await seedTechnician("rej", "SENT");
 
-  const ctx = await browser.newContext();
+  const ctx = await newClientContext(browser);
   const client = await ctx.newPage();
   await client.goto(`/o/${t.publicId}`);
   await client.getByRole("button", { name: "Recusar" }).click();
@@ -41,7 +41,7 @@ test("editar orçamento enviado volta para rascunho e o link antigo não aprova 
   await expect(page.getByText("Rascunho", { exact: true })).toBeVisible();
   await expect(page.getByText("R$ 400,00").first()).toBeVisible();
 
-  const ctx = await browser.newContext();
+  const ctx = await newClientContext(browser);
   const client = await ctx.newPage();
   await client.goto(`/o/${t.publicId}`);
   await expect(client.getByText(/está sendo atualizado/)).toBeVisible();
