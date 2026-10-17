@@ -9,5 +9,6 @@ Para cada spec: `Leia CLAUDE.md e docs/specs/SPEC-0X-....md e execute.` Só pass
 | 2 | `SPEC-02-metricas.md` | Sem cobrança, a pergunta é retenção. Script de leitura, sem tabela de eventos nova |
 | 3 | `SPEC-03-sessoes.md` | Risco conhecido: JWT continua válido depois de redefinir a senha |
 | 4 | `SPEC-04-indicacao.md` | Canal de aquisição barato; só rastreia, sem recompensa até existir cobrança |
+| 5 | `SPEC-05-lembretes-clientes.md` | Lembrete de manutenção automático por serviço, push no dia e próxima data; independente das demais, pode rodar antes da 03/04 |
 
 Fora do roadmap (decisão): `sendQuoteViaWhatsApp` marcar `SENT` antes do envio real não tem correção confiável (o app não sabe se o técnico apertou "enviar" no WhatsApp). Mantido como risco aceito; o "visto" da SPEC-01 compensa, porque mostra quem nunca abriu o link.
