@@ -12,10 +12,12 @@ export function MaintenanceReminder({
   quoteId,
   reminderLabel,
   done,
+  reminderService,
 }: {
   quoteId: string;
   reminderLabel: string | null; // "dd/mm/aaaa" quando há lembrete
   done: boolean;
+  reminderService?: string | null; // origem do lembrete automático: nome do serviço, ou null = padrão do app
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -40,6 +42,7 @@ export function MaintenanceReminder({
           <p className="text-sm text-muted-foreground">
             {done ? "Feito" : `Aviso em ${reminderLabel}`} · aparece no Início quando chegar a data.
           </p>
+          <p className="text-xs text-muted-foreground">Origem: {reminderService ? `serviço ${reminderService}` : "padrão do app"}</p>
           <Button variant="outline" className="h-11 w-full" disabled={pending} onClick={() => set(null)}>
             Remover lembrete
           </Button>

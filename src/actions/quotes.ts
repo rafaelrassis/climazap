@@ -9,10 +9,43 @@ import { LIMITS, getClientIp, rateLimit } from "@/lib/rate-limit";
 import { getUserId, requireUserId } from "@/lib/session";
 import { calcLineCents, formatBRL } from "@/lib/money";
 import { SNOOZE_GUARD_MS } from "@/lib/followup";
+import { addMonths, resolveReminder } from "@/lib/maintenance";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { DEFAULT_WA_TEMPLATE, renderWaTemplate } from "@/lib/wa-template";
 import { createQuoteSchema, type CreateQuoteInput } from "@/lib/validations/quote";
+import { reminderMonthsSchema } from "@/lib/validations/service";
 import type { ActionResult } from "@/types/action";
+
+// Agenda o lembrete de manutenção sozinho na aprovação, pelo serviço de menor prazo entre os
+// itens (ou o padrão do técnico, sem nenhum). Nunca lança: falha aqui não pode desfazer a aprovação
+// (inclusive a própria busca do orçamento, por isso recebe o publicId em vez do id já resolvido).
+async function scheduleMaintenanceReminder(publicId: string, approvedAt: Date): Promise<void> {
+  try {
+    const quote = await db.quote.findUnique({
+      where: { publicId },
+      select: {
+        id: true,
+        user: { select: { defaultReminderMonths: true } },
+        items: { select: { service: { select: { name: true, reminderMonths: true, reminderText: true } } } },
+      },
+    });
+    if (!quote) return;
+
+    const resolved = resolveReminder(quote.items, quote.user.defaultReminderMonths);
+    if (!resolved) return;
+
+    await db.quote.updateMany({
+      where: { id: quote.id, status: "APPROVED", reminderAt: null },
+      data: {
+        reminderAt: addMonths(approvedAt, resolved.months),
+        reminderText: resolved.text,
+        reminderService: resolved.service,
+      },
+    });
+  } catch (e) {
+    console.error("[maintenance] falha ao agendar lembrete na aprovação", e);
+  }
+}
 
 type Prepared = {
   items: {
@@ -255,6 +288,8 @@ export async function approveQuoteByPublicId(publicId: string): Promise<ActionRe
   revalidatePath(`/o/${publicId}`);
   revalidatePath("/orcamentos");
   await notifyQuoteResponse(publicId, "APPROVED");
+  await scheduleMaintenanceReminder(publicId, now);
+
   return { ok: true, data: undefined };
 }
 
@@ -392,26 +427,19 @@ export async function setQuotePaid(quoteId: string, paid: boolean): Promise<Acti
   return { ok: true, data: undefined };
 }
 
-const reminderSchema = z.object({ months: z.union([z.literal(3), z.literal(6), z.literal(12)]).nullable() });
-
-// Lembrete de manutenção: só em orçamento aprovado. months = null remove o lembrete.
+// Lembrete de manutenção manual: só em orçamento aprovado. months = null remove o lembrete.
+// Sempre usa a mensagem padrão (sem reminderText/reminderService): isso é só do agendamento
+// automático pelo serviço na aprovação.
 export async function setMaintenanceReminder(quoteId: string, months: number | null): Promise<ActionResult> {
   const userId = await requireUserId();
-  const parsed = reminderSchema.safeParse({ months });
+  const parsed = reminderMonthsSchema.safeParse(months);
   if (!parsed.success) return { ok: false, error: "Prazo inválido" };
 
-  const reminderAt =
-    parsed.data.months === null
-      ? null
-      : (() => {
-          const d = new Date();
-          d.setMonth(d.getMonth() + parsed.data.months);
-          return d;
-        })();
+  const reminderAt = parsed.data === null ? null : addMonths(new Date(), parsed.data);
 
   const { count } = await db.quote.updateMany({
     where: { id: quoteId, userId, status: "APPROVED" },
-    data: { reminderAt, reminderDoneAt: null },
+    data: { reminderAt, reminderDoneAt: null, reminderNotifiedAt: null, reminderText: null, reminderService: null },
   });
   if (count === 0) return { ok: false, error: "Orçamento não encontrado ou não aprovado" };
 
@@ -420,14 +448,26 @@ export async function setMaintenanceReminder(quoteId: string, months: number | n
   return { ok: true, data: undefined };
 }
 
-// Marca o lembrete como feito (some do início)
-export async function completeMaintenanceReminder(quoteId: string): Promise<ActionResult> {
+// Marca o lembrete como feito (some do início). Com nextMonths, já agenda a próxima manutenção
+// (mesmo orçamento, mesmos reminderText/reminderService); sem, é só marcar como feito.
+export async function completeMaintenanceReminder(quoteId: string, nextMonths?: 3 | 6 | 12 | null): Promise<ActionResult> {
   const userId = await requireUserId();
-  const { count } = await db.quote.updateMany({
-    where: { id: quoteId, userId, reminderAt: { not: null } },
-    data: { reminderDoneAt: new Date() },
-  });
-  if (count === 0) return { ok: false, error: "Lembrete não encontrado" };
+
+  if (nextMonths == null) {
+    const { count } = await db.quote.updateMany({
+      where: { id: quoteId, userId, reminderAt: { not: null } },
+      data: { reminderDoneAt: new Date() },
+    });
+    if (count === 0) return { ok: false, error: "Lembrete não encontrado" };
+  } else {
+    const parsed = reminderMonthsSchema.safeParse(nextMonths);
+    if (!parsed.success || parsed.data === null) return { ok: false, error: "Prazo inválido" };
+    const { count } = await db.quote.updateMany({
+      where: { id: quoteId, userId, reminderAt: { not: null } },
+      data: { reminderAt: addMonths(new Date(), parsed.data), reminderDoneAt: null, reminderNotifiedAt: null },
+    });
+    if (count === 0) return { ok: false, error: "Lembrete não encontrado" };
+  }
 
   revalidatePath(`/orcamentos/${quoteId}`);
   revalidatePath("/inicio");

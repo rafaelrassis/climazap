@@ -101,6 +101,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           quoteId={q.id}
           reminderLabel={q.reminderAt ? fmtDate.format(q.reminderAt) : null}
           done={!!q.reminderDoneAt}
+          reminderService={q.reminderService}
         />
       )}
 

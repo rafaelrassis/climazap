@@ -10,6 +10,7 @@ import { generateReferralCode } from "@/lib/referral";
 import { nudgeTemplateSchema, waTemplateSchema } from "@/lib/validations/auth";
 import { pixSchema } from "@/lib/validations/pix";
 import { pushSubscriptionSchema, type PushSubscriptionInput } from "@/lib/validations/push";
+import { reminderMonthsSchema } from "@/lib/validations/service";
 import type { ActionResult } from "@/types/action";
 
 const REFERRAL_ATTEMPTS = 5;
@@ -158,6 +159,17 @@ export async function logoutEverywhere(): Promise<void> {
   // import dinâmico: evita carregar o next-auth (e seu runtime) para quem só usa as outras actions deste arquivo
   const { signOut } = await import("@/auth");
   await signOut({ redirectTo: "/login" });
+}
+
+// Padrão geral de lembrete de manutenção: vale para aprovações futuras quando nenhum item do
+// orçamento tem serviço com prazo próprio. null desliga o lembrete automático.
+export async function saveDefaultReminder(months: number | null): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const parsed = reminderMonthsSchema.safeParse(months);
+  if (!parsed.success) return { ok: false, error: "Prazo inválido" };
+  await db.user.update({ where: { id: userId }, data: { defaultReminderMonths: parsed.data } });
+  revalidatePath("/ajustes");
+  return { ok: true, data: undefined };
 }
 
 export async function saveBrandColor(hex: string): Promise<ActionResult> {

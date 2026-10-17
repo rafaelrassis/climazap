@@ -94,7 +94,7 @@ describe("rota do cron diário de expiração", () => {
 
     const res = await callExpirar("Bearer segredo-do-cron");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, expired: 2 });
+    expect(await res.json()).toEqual({ ok: true, expired: 2, notified: 0 });
     const status = async (id: string) => (await db.quote.findUniqueOrThrow({ where: { id } })).status;
     expect([await status(a), await status(b)]).toEqual(["EXPIRED", "EXPIRED"]);
     expect(await status(valid)).toBe("SENT");

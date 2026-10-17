@@ -74,6 +74,7 @@ test("aprovado: lembrete de manutenção aparece no início quando vence e some 
   await expect(page.getByText("Hora da manutenção")).toBeVisible();
   await expect(page.getByRole("link", { name: "Chamar" })).toHaveAttribute("href", /^https:\/\/wa\.me\/5511977776666\?text=/);
   await page.getByRole("button", { name: "Feito" }).click();
+  await page.getByRole("button", { name: "Não agendar" }).click();
   await expect(page.getByText("Hora da manutenção")).toHaveCount(0);
 });
 

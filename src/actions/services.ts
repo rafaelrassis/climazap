@@ -19,6 +19,8 @@ const SELECT = {
   priceCents: true,
   userId: true,
   overridesId: true,
+  reminderMonths: true,
+  reminderText: true,
 } as const;
 
 // Serviços ativos do técnico + padrões do sistema que ele não personalizou nem ocultou
@@ -94,6 +96,8 @@ export async function updateService(input: UpdateServiceInput): Promise<ActionRe
       description: base.description,
       unit: base.unit,
       priceCents: data.priceCents,
+      reminderMonths: base.reminderMonths,
+      reminderText: base.reminderText,
     },
     update: { priceCents: data.priceCents, isActive: true },
     select: { id: true },
@@ -120,6 +124,8 @@ export async function removeService(id: string): Promise<ActionResult> {
         description: base.description,
         unit: base.unit,
         priceCents: base.priceCents,
+        reminderMonths: base.reminderMonths,
+        reminderText: base.reminderText,
         isActive: false,
       },
       update: { isActive: false },

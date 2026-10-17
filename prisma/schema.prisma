@@ -22,29 +22,30 @@ enum QuoteStatus {
 }
 
 model User {
-  id                 String    @id @default(cuid())
-  name               String
-  email              String    @unique
-  passwordHash       String
-  sessionsValidAfter DateTime?
-  phone              String?
-  companyName        String?
-  waTemplate         String?
-  nudgeTemplate      String?
-  emailDigest        Boolean   @default(true)
-  termsAcceptedAt    DateTime?
-  pixKey             String?
-  pixKeyType         String?
-  pixCity            String?
-  brandColor         String?
-  logo               Bytes?
-  logoType           String?
-  logoUpdatedAt      DateTime?
-  quoteSeq           Int       @default(0)
-  referralCode       String?   @unique
-  referredById       String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  name                  String
+  email                 String    @unique
+  passwordHash          String
+  sessionsValidAfter    DateTime?
+  phone                 String?
+  companyName           String?
+  waTemplate            String?
+  nudgeTemplate         String?
+  emailDigest           Boolean   @default(true)
+  termsAcceptedAt       DateTime?
+  pixKey                String?
+  pixKeyType            String?
+  pixCity               String?
+  brandColor            String?
+  logo                  Bytes?
+  logoType              String?
+  logoUpdatedAt         DateTime?
+  quoteSeq              Int       @default(0)
+  referralCode          String?   @unique
+  referredById          String?
+  defaultReminderMonths Int?      @default(6)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   services            Service[]
   quotes              Quote[]
@@ -60,17 +61,20 @@ model User {
 
 // userId null = serviço padrão do sistema (seed); preenchido = catálogo do usuário
 model Service {
-  id          String   @id @default(cuid())
-  userId      String?
+  id             String   @id @default(cuid())
+  userId         String?
   // preenchido = personalização do técnico sobre um serviço padrão (o padrão nunca é alterado)
-  overridesId String?
-  name        String
-  description String?
-  unit        String   @default("un")
-  priceCents  Int
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  overridesId    String?
+  name           String
+  description    String?
+  unit           String   @default("un")
+  priceCents     Int
+  isActive       Boolean  @default(true)
+  // null = sem lembrete; só 3, 6 ou 12
+  reminderMonths Int?
+  reminderText   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   overrides    Service?    @relation("ServiceOverride", fields: [overridesId], references: [id], onDelete: Cascade)
@@ -82,30 +86,34 @@ model Service {
 }
 
 model Quote {
-  id              String      @id @default(cuid())
-  publicId        String      @unique @default(uuid())
-  number          Int
-  userId          String
-  customerId      String?
-  customerName    String
-  customerPhone   String
-  customerAddress String?
-  title           String?
-  notes           String?
-  status          QuoteStatus @default(DRAFT)
-  discountCents   Int         @default(0)
-  totalCents      Int         @default(0)
-  validUntil      DateTime?
-  sentAt          DateTime?
-  viewedAt        DateTime?
-  respondedAt     DateTime?
-  rejectReason    String?
-  paidAt          DateTime?
-  reminderAt      DateTime?
-  reminderDoneAt  DateTime?
-  lastNudgeAt     DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                 String      @id @default(cuid())
+  publicId           String      @unique @default(uuid())
+  number             Int
+  userId             String
+  customerId         String?
+  customerName       String
+  customerPhone      String
+  customerAddress    String?
+  title              String?
+  notes              String?
+  status             QuoteStatus @default(DRAFT)
+  discountCents      Int         @default(0)
+  totalCents         Int         @default(0)
+  validUntil         DateTime?
+  sentAt             DateTime?
+  viewedAt           DateTime?
+  respondedAt        DateTime?
+  rejectReason       String?
+  paidAt             DateTime?
+  reminderAt         DateTime?
+  reminderDoneAt     DateTime?
+  // snapshot na aprovação: o catálogo pode mudar depois sem alterar lembretes já agendados
+  reminderText       String?
+  reminderService    String?
+  reminderNotifiedAt DateTime?
+  lastNudgeAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   customer Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)

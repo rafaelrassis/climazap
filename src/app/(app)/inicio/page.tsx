@@ -8,6 +8,7 @@ import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { canSnooze, expiryLabel, followUpMessage, viewedLabel } from "@/lib/followup";
+import { renderMaintenanceMessage } from "@/lib/maintenance";
 import { followUpWhere } from "@/lib/followup-queries";
 import { getFollowUpContext } from "@/lib/followup-context";
 import { getNudgeFunnel } from "@/lib/nudge-funnel";
@@ -109,7 +110,7 @@ export default async function InicioPage() {
       where: { userId, reminderAt: { lte: now }, reminderDoneAt: null },
       orderBy: { reminderAt: "asc" },
       take: 5,
-      select: { id: true, customerName: true, customerPhone: true, respondedAt: true },
+      select: { id: true, customerName: true, customerPhone: true, respondedAt: true, reminderText: true, reminderService: true },
     }),
     db.quote.findMany({
       where: { userId },
@@ -203,13 +204,17 @@ export default async function InicioPage() {
                         <span className="truncate text-sm font-bold">{q.customerName}</span>
                         <span className="text-[13px] font-semibold text-muted-foreground">
                           serviço de {q.respondedAt ? fmtMonth.format(q.respondedAt) : "—"}
+                          {q.reminderService && ` · ${q.reminderService}`}
                         </span>
                       </Link>
                       <Button asChild className="h-11 shrink-0 px-4">
                         <a
                           href={buildWhatsAppUrl(
                             q.customerPhone,
-                            `Oi, ${q.customerName}! Já faz um tempo desde o último serviço no seu ar-condicionado. Que tal agendar a manutenção preventiva?`,
+                            renderMaintenanceMessage(
+                              { cliente: q.customerName, tecnico: followUpCtx.tecnico, servico: q.reminderService ?? "manutenção preventiva" },
+                              q.reminderText,
+                            ),
                           )}
                         >
                           Chamar

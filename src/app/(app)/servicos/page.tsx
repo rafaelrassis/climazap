@@ -31,9 +31,10 @@ export default async function ServicosPage() {
               <p className="shrink-0 text-sm font-semibold">{formatBRL(s.priceCents)}</p>
             </div>
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex flex-wrap gap-1">
                 {s.overridesId && <Badge variant="secondary">Preço personalizado</Badge>}
                 {!s.overridesId && s.userId && <Badge variant="outline">Meu serviço</Badge>}
+                {s.reminderMonths && <Badge variant="outline">lembra em {s.reminderMonths} meses</Badge>}
               </div>
               <div className="flex gap-1">
                 {s.overridesId && <RestoreDefaultButton baseId={s.overridesId} label="Voltar ao padrão" />}

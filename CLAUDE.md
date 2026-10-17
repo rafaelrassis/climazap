@@ -41,7 +41,7 @@ npx prisma migrate dev --name <nome>
 npx prisma db seed
 npm run lint && npx tsc --noEmit
 npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, padrão postgresql://postgres:postgres@localhost:5432/climazap_test). O banco precisa ter "test" no nome: o setup apaga o schema.
-npm run test:e2e        # 47 testes Playwright (fluxos, formulário, segurança/XSS, layout a 320-430px, acessibilidade axe, PWA, LGPD) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
+npm run test:e2e        # 49 testes Playwright (fluxos, formulário, segurança/XSS, layout a 320-430px, acessibilidade axe, PWA, LGPD) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
 npm run metricas        # Só leitura: ativação/retenção por coorte, funil enviado->visto->aprovado, efeito da cobrança (ver DEPLOY.md)
 ```
 
@@ -52,7 +52,7 @@ npm run metricas        # Só leitura: ativação/retenção por coorte, funil e
 Ver `DEPLOY.md`. Migrations em `prisma/migrations` (gerar nova: `npx prisma migrate dev --name <nome>`; aplicar em produção: `npx prisma migrate deploy`). Versões de `next-auth`, `prisma` e `@prisma/client` fixadas (exatas).
 
 ## Cron
-`vercel.json`: segunda 11:00 UTC (8h BRT) chama `/api/cron/lembretes` (resumo semanal) e todo dia 08:00 UTC (5h BRT) `/api/cron/expirar` (SENT vencidos -> EXPIRED), ambos protegidos por `CRON_SECRET` (Bearer, `src/lib/cron-auth.ts`). Rotas públicas no middleware, autenticadas pelo segredo.
+`vercel.json`: segunda 11:00 UTC (8h BRT) chama `/api/cron/lembretes` (resumo semanal) e todo dia 11:00 UTC (8h BRT) `/api/cron/expirar` (SENT vencidos -> EXPIRED), ambos protegidos por `CRON_SECRET` (Bearer, `src/lib/cron-auth.ts`). Rotas públicas no middleware, autenticadas pelo segredo. `/api/cron/expirar` também dispara `notifyDueReminders` (push de lembretes de manutenção vencidos, de propósito para não criar um 3º cron); horário movido de 5h para 8h BRT por causa disso (push às 5h era cedo demais).
 
 ## Cobrança (follow-up)
 `Quote.lastNudgeAt` esconde o orçamento das listas (passado = cobrado, futuro = adiado); `QuoteNudge` (NUDGE/SNOOZE) é o histórico que alimenta o funil de 30 dias. Filtros em `src/lib/followup-queries.ts` (painel e resumo semanal usam os mesmos). Mensagem editável em Ajustes (`User.nudgeTemplate`); orçamento que vence em até 24h usa a mensagem de urgência.
@@ -65,6 +65,9 @@ Ver `DEPLOY.md`. Migrations em `prisma/migrations` (gerar nova: `npx prisma migr
 ## Indicação
 `User.referralCode` (6 caracteres, gerado sob demanda no 1º acesso a Ajustes por `ensureReferralCode`, com retry em colisão) e `User.referredById` (`onDelete: SetNull`: excluir quem indicou não apaga o indicado). `registerAction` aceita `ref` opcional; código inexistente ou malformado é ignorado em silêncio (não bloqueia o cadastro, não revela se o código existe). Sem recompensa: só rastreio, para medir se o boca a boca funciona (`referrals()` em `src/lib/metrics.ts`, incluído no `npm run metricas`).
 
+## Lembretes de manutenção
+`Service.reminderMonths` (3/6/12, null = sem lembrete) e `Service.reminderText` (opcional, placeholders `{cliente}` `{tecnico}` `{servico}`); `User.defaultReminderMonths` (padrão geral, default 6) vale quando nenhum item do orçamento tem serviço com prazo próprio. Ao aprovar, `resolveReminder` (`src/lib/maintenance.ts`) escolhe o serviço de menor prazo entre os itens (ou o padrão) e grava o snapshot em `Quote.reminderText`/`reminderService` — nunca lança: falha ao agendar não desfaz a aprovação (`scheduleMaintenanceReminder` em `src/actions/quotes.ts`). `addMonths` soma meses sem estourar (31/ago + 6 → 28/fev). Lembrete manual (`setMaintenanceReminder`) sempre usa a mensagem padrão (zera `reminderText`/`reminderService`). "Feito" (`completeMaintenanceReminder`) aceita agendar a próxima manutenção direto (Drawer em `/inicio`). Push no dia (`notifyDueReminders`, `src/lib/maintenance-notify.ts`) roda dentro do cron `/api/cron/expirar`; só marca `Quote.reminderNotifiedAt` se o push foi entregue (sem aparelho, tenta de novo no dia seguinte). Serviço com override (`overridesId`) herda `reminderMonths`/`reminderText` do padrão ao ser criado.
+
 ## Git
 Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nunca commitar `.env`.
 
@@ -72,7 +75,7 @@ Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nun
 Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tarefa: trazer opiniões/riscos curtos e propor ideias novas. Pode discordar. Avisos de segurança/perda de dados podem ser mais longos.
 
 ## Estado atual
-Roadmap concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA com service worker só para push (sem cache offline: app autenticado precisa de dado fresco), web push de aprovação/recusa (`web-push`, VAPID), descadastro do resumo por link assinado, editar/excluir cliente e clientes dormentes, navegação inferior, recuperar senha, LGPD (privacidade, termos, aceite, exportar e excluir conta), alerta de erros por e-mail, PDF do orçamento, Pix (BR Code com QR), fotos do orçamento, cor da marca, "visto" (SPEC-01: `viewedAt`, selo no painel e variante de cobrança para quem nunca abriu o link), métricas de validação (SPEC-02: `npm run metricas`, só leitura), sessões (SPEC-03: redefinir a senha ou "Sair de todos os aparelhos" invalida sessões antigas) e indicação entre técnicos (SPEC-04: link de convite em Ajustes, sem recompensa).
+Roadmap concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA com service worker só para push (sem cache offline: app autenticado precisa de dado fresco), web push de aprovação/recusa (`web-push`, VAPID), descadastro do resumo por link assinado, editar/excluir cliente e clientes dormentes, navegação inferior, recuperar senha, LGPD (privacidade, termos, aceite, exportar e excluir conta), alerta de erros por e-mail, PDF do orçamento, Pix (BR Code com QR), fotos do orçamento, cor da marca, "visto" (SPEC-01: `viewedAt`, selo no painel e variante de cobrança para quem nunca abriu o link), métricas de validação (SPEC-02: `npm run metricas`, só leitura), sessões (SPEC-03: redefinir a senha ou "Sair de todos os aparelhos" invalida sessões antigas) indicação entre técnicos (SPEC-04: link de convite em Ajustes, sem recompensa) e lembrete de manutenção automático por serviço (SPEC-05: agenda sozinho na aprovação, push no dia, "Feito" já agenda a próxima).
 
 ## Roadmap
 Concluído. Ideias para depois: plano pago (limites, cobrança, só com técnicos reais usando); fotos e logo em armazenamento de arquivos se o tráfego crescer; fotos no PDF; Sentry se o alerta por e-mail ficar curto; CSP com nonce; Next 16/Tailwind 4/Prisma 7.

@@ -10,6 +10,7 @@ import { PixForm } from "@/components/settings/pix-form";
 import { PushToggle } from "@/components/settings/push-toggle";
 import { LogoForm } from "@/components/settings/logo-form";
 import { EmailDigestToggle } from "@/components/settings/email-digest-toggle";
+import { DefaultReminderForm } from "@/components/settings/default-reminder-form";
 import { ReferralCard } from "@/components/settings/referral-card";
 import { WaTemplateForm } from "@/components/settings/wa-template-form";
 import { NudgeTemplateForm } from "@/components/settings/nudge-template-form";
@@ -22,7 +23,19 @@ export default async function AjustesPage() {
   const [user, referralCode, referralCount] = await Promise.all([
     db.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { name: true, companyName: true, waTemplate: true, nudgeTemplate: true, emailDigest: true, logoUpdatedAt: true, pixKey: true, pixKeyType: true, pixCity: true, brandColor: true },
+      select: {
+        name: true,
+        companyName: true,
+        waTemplate: true,
+        nudgeTemplate: true,
+        emailDigest: true,
+        logoUpdatedAt: true,
+        pixKey: true,
+        pixKeyType: true,
+        pixCity: true,
+        brandColor: true,
+        defaultReminderMonths: true,
+      },
     }),
     ensureReferralCode(),
     db.user.count({ where: { referredById: userId } }),
@@ -39,6 +52,7 @@ export default async function AjustesPage() {
       <EmailDigestToggle initial={user.emailDigest} />
       <WaTemplateForm initial={user.waTemplate ?? DEFAULT_WA_TEMPLATE} sender={user.companyName ?? user.name} />
       <NudgeTemplateForm initial={user.nudgeTemplate ?? DEFAULT_NUDGE_TEMPLATE} sender={user.companyName ?? user.name} />
+      <DefaultReminderForm initial={user.defaultReminderMonths} />
       {referralCode.ok && <ReferralCard link={`${baseUrl}/cadastro?ref=${referralCode.data.code}`} count={referralCount} />}
       <AccountSection />
       <LegalLinks />
