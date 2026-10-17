@@ -127,6 +127,16 @@ export async function removePix(): Promise<ActionResult> {
   return { ok: true, data: undefined };
 }
 
+// Invalida todas as sessões (inclusive a atual, que é encerrada em seguida) ao trocar o aparelho
+// ou suspeitar de acesso indevido, sem precisar redefinir a senha.
+export async function logoutEverywhere(): Promise<void> {
+  const userId = await requireUserId();
+  await db.user.update({ where: { id: userId }, data: { sessionsValidAfter: new Date() } });
+  // import dinâmico: evita carregar o next-auth (e seu runtime) para quem só usa as outras actions deste arquivo
+  const { signOut } = await import("@/auth");
+  await signOut({ redirectTo: "/login" });
+}
+
 export async function saveBrandColor(hex: string): Promise<ActionResult> {
   const userId = await requireUserId();
   if (!isBrandColor(hex)) return { ok: false, error: "Cor inválida" };

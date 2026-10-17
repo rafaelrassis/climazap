@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { deleteAccount, registerAction } from "@/actions/auth";
 import { createQuote } from "@/actions/quotes";
-import { savePushSubscription, saveLogo } from "@/actions/settings";
+import { logoutEverywhere, savePushSubscription, saveLogo } from "@/actions/settings";
 import { GET as exportData } from "@/app/api/meus-dados/route";
 import { loginAs, makeUser, quoteInput, resetDb } from "../helpers/db";
 
@@ -140,5 +140,31 @@ describe("excluir conta", () => {
     expect((await saveLogo(fd)).ok).toBe(true);
     await deleteAccount(undefined, form({ password: "minhasenha" }));
     expect(await db.user.count({ where: { id: u.id } })).toBe(0);
+  });
+});
+
+describe("sair de todos os aparelhos", () => {
+  it("grava sessionsValidAfter e encerra a sessão atual", async () => {
+    const u = await makeUser("a@t.com");
+    loginAs(u.id);
+    await logoutEverywhere();
+    expect(signOut).toHaveBeenCalledWith({ redirectTo: "/login" });
+    expect((await db.user.findUniqueOrThrow({ where: { id: u.id } })).sessionsValidAfter).not.toBeNull();
+  });
+
+  it("sessão emitida antes passa a ser tratada como não logada", async () => {
+    const u = await makeUser("a@t.com");
+    const oldIssuedAt = Date.now();
+    await new Promise((r) => setTimeout(r, 5)); // garante que sessionsValidAfter fique depois de oldIssuedAt
+    loginAs(u.id, oldIssuedAt);
+    await logoutEverywhere();
+
+    loginAs(u.id, oldIssuedAt); // mesmo "aparelho" tentando de novo
+    await expect(createQuote(quoteInput() as never)).rejects.toThrow("UNAUTHORIZED");
+  });
+
+  it("sem sessão, não grava nada", async () => {
+    await expect(logoutEverywhere()).rejects.toThrow("UNAUTHORIZED");
+    expect(signOut).not.toHaveBeenCalled();
   });
 });

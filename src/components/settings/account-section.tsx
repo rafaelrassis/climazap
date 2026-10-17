@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { deleteAccount } from "@/actions/auth";
+import { logoutEverywhere } from "@/actions/settings";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -16,9 +18,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+function LogoutEverywhereButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" variant="destructive" className="h-12" disabled={pending}>
+      {pending ? "Saindo..." : "Sim, sair de todos"}
+    </Button>
+  );
+}
+
 export function AccountSection() {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(deleteAccount, undefined);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   return (
     <div className="space-y-2 rounded-md border p-3">
@@ -31,6 +43,30 @@ export function AccountSection() {
           Baixar meus dados
         </a>
       </Button>
+
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" className="h-11 w-full">
+            Sair de todos os aparelhos
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] rounded-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair de todos os aparelhos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Encerra sua sessão aqui e em qualquer outro celular ou computador onde você esteja logado. Você precisará entrar de novo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <form action={logoutEverywhere} className="contents">
+            <AlertDialogFooter className="gap-2">
+              <AlertDialogCancel type="button" className="h-12">
+                Voltar
+              </AlertDialogCancel>
+              <LogoutEverywhereButton />
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>

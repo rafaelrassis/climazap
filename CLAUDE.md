@@ -41,7 +41,7 @@ npx prisma migrate dev --name <nome>
 npx prisma db seed
 npm run lint && npx tsc --noEmit
 npm test                # Vitest; integração usa Postgres (TEST_DATABASE_URL, padrão postgresql://postgres:postgres@localhost:5432/climazap_test). O banco precisa ter "test" no nome: o setup apaga o schema.
-npm run test:e2e        # 45 testes Playwright (fluxos, formulário, segurança/XSS, layout a 320-430px, acessibilidade axe, PWA, LGPD) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
+npm run test:e2e        # 46 testes Playwright (fluxos, formulário, segurança/XSS, layout a 320-430px, acessibilidade axe, PWA, LGPD) (celular Pixel 5): sobe build na porta 3200 com o banco de teste. Local: PW_CHROMIUM_PATH=<chromium já instalado>
 npm run metricas        # Só leitura: ativação/retenção por coorte, funil enviado->visto->aprovado, efeito da cobrança (ver DEPLOY.md)
 ```
 
@@ -59,6 +59,9 @@ Ver `DEPLOY.md`. Migrations em `prisma/migrations` (gerar nova: `npx prisma migr
 
 `Quote.viewedAt` registra a 1ª abertura do link público pelo cliente: beacon client-side (`src/components/quotes/view-beacon.tsx`, chamado em `/o/[publicId]`) chama `markQuoteViewed`, porque a página pública tem cache (`revalidate = 300`) e não pode gravar no render do servidor. `viewedLabel` (`src/lib/followup.ts`) mostra "visto"/"não abriu o link" em `/orcamentos`, `/inicio` e no resumo semanal; o detalhe (`/orcamentos/[id]`) mostra "Visto em DD/MM HH:mm". Precedência da mensagem de cobrança: urgência (vence em até 24h) > modelo próprio do técnico (`nudgeTemplate`) > variante por visto (`NOT_VIEWED_NUDGE_TEMPLATE`, só quando não há modelo próprio). Editar o orçamento enviado (volta para `DRAFT`) zera `viewedAt`.
 
+## Sessões
+`User.sessionsValidAfter DateTime?` + `token.issuedAt`/`session.issuedAt` (gravado só no login, em `src/auth.config.ts`). `isSessionRevoked` (`src/lib/session-revoked.ts`) compara os dois; `requireUserId`/`getUserId` (`src/lib/session.ts`) consultam `sessionsValidAfter` por PK a cada chamada (1 query extra por requisição). `resetPassword` e `logoutEverywhere` (Ajustes > "Sair de todos os aparelhos") gravam `sessionsValidAfter = now()`. O middleware não consulta banco (edge, sem Prisma): o cookie/JWT continua "válido" para ele mesmo depois de revogado. Por isso `requireUserId` usa `redirect()` (não `throw`) quando não há sessão válida — Next busca os dados do layout e da página em paralelo, então a página também chega a essa checagem de forma independente do redirect do layout; um `throw` normal apareceria como erro de servidor (e disparava o alerta por e-mail) mesmo com o redirect funcionando. O redirect vai para `/api/auth/sessao-revogada` (fora do matcher do middleware, em `/api/auth/*`), que faz um `signOut` de verdade (limpa o cookie) antes de ir para `/login` — só redirecionar para `/login` sem limpar o cookie cria um loop, porque o middleware vê o cookie como logado e manda de volta para `/inicio`.
+
 ## Git
 Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nunca commitar `.env`.
 
@@ -66,10 +69,10 @@ Commitar e enviar direto na `main`, mensagens curtas (Conventional Commits). Nun
 Português, muito breve, código/comandos primeiro, sem preâmbulo. Em toda tarefa: trazer opiniões/riscos curtos e propor ideias novas. Pode discordar. Avisos de segurança/perda de dados podem ser mais longos.
 
 ## Estado atual
-Roadmap concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA com service worker só para push (sem cache offline: app autenticado precisa de dado fresco), web push de aprovação/recusa (`web-push`, VAPID), descadastro do resumo por link assinado, editar/excluir cliente e clientes dormentes, navegação inferior, recuperar senha, LGPD (privacidade, termos, aceite, exportar e excluir conta), alerta de erros por e-mail, PDF do orçamento, Pix (BR Code com QR), fotos do orçamento, cor da marca, "visto" (SPEC-01: `viewedAt`, selo no painel e variante de cobrança para quem nunca abriu o link) e métricas de validação (SPEC-02: `npm run metricas`, só leitura).
+Roadmap concluído: cadastro, detalhe/duplicar/editar/renovar/contraproposta, recusar com motivo, expiração na leitura, rate limit (Postgres), serviços com override de preço, aviso por e-mail (Resend), clientes com autocomplete, rascunho em localStorage, template do WhatsApp, OG image, dashboard com "a receber", PWA com service worker só para push (sem cache offline: app autenticado precisa de dado fresco), web push de aprovação/recusa (`web-push`, VAPID), descadastro do resumo por link assinado, editar/excluir cliente e clientes dormentes, navegação inferior, recuperar senha, LGPD (privacidade, termos, aceite, exportar e excluir conta), alerta de erros por e-mail, PDF do orçamento, Pix (BR Code com QR), fotos do orçamento, cor da marca, "visto" (SPEC-01: `viewedAt`, selo no painel e variante de cobrança para quem nunca abriu o link) métricas de validação (SPEC-02: `npm run metricas`, só leitura) e sessões (SPEC-03: redefinir a senha ou "Sair de todos os aparelhos" invalida sessões antigas).
 
 ## Roadmap
-Concluído. Ideias para depois: plano pago (limites, cobrança, só com técnicos reais usando); fotos e logo em armazenamento de arquivos se o tráfego crescer; fotos no PDF; Sentry se o alerta por e-mail ficar curto; invalidar sessões ao trocar a senha (hoje o JWT vale até expirar); CSP com nonce; Next 16/Tailwind 4/Prisma 7.
+Concluído. Ideias para depois: plano pago (limites, cobrança, só com técnicos reais usando); fotos e logo em armazenamento de arquivos se o tráfego crescer; fotos no PDF; Sentry se o alerta por e-mail ficar curto; CSP com nonce; Next 16/Tailwind 4/Prisma 7.
 
 ## Riscos conhecidos
 - `next-auth@beta` (v5): versão fixada em 5.0.0-beta.32; atualizar com cuidado.

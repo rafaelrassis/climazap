@@ -18,11 +18,15 @@ export const authConfig = {
       return isPublic || isLoggedIn;
     },
     jwt({ token, user }) {
-      if (user?.id) token.id = user.id;
+      if (user?.id) {
+        token.id = user.id;
+        token.issuedAt = Date.now();
+      }
       return token;
     },
     session({ session, token }) {
       if (token.id) session.user.id = token.id as string;
+      if (typeof token.issuedAt === "number") session.issuedAt = token.issuedAt;
       return session;
     },
   },

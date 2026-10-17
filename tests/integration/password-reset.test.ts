@@ -2,8 +2,9 @@ import bcrypt from "bcryptjs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { requestPasswordReset, resetPassword } from "@/actions/auth";
+import { createQuote } from "@/actions/quotes";
 import { hashToken } from "@/lib/password-reset";
-import { resetDb } from "../helpers/db";
+import { loginAs, quoteInput, resetDb } from "../helpers/db";
 
 // evita carregar next-auth (depende do runtime do Next) fora do servidor
 vi.mock("@/auth", () => ({ signIn: vi.fn(), signOut: vi.fn() }));
@@ -132,5 +133,23 @@ describe("redefinição", () => {
     const b = await userWithPassword("b@t.com", "senhadob");
     await resetPassword(undefined, form({ token: a.token, password: "novasenha1", confirm: "novasenha1" }));
     expect(await bcrypt.compare("senhadob", (await db.user.findUniqueOrThrow({ where: { id: b.id } })).passwordHash)).toBe(true);
+  });
+
+  it("invalida sessões emitidas antes da troca; um login novo funciona", async () => {
+    const { u, token } = await pending();
+    const oldIssuedAt = Date.now();
+    loginAs(u.id, oldIssuedAt);
+    expect((await createQuote(quoteInput() as never)).ok).toBe(true); // sessão válida antes de redefinir
+
+    await new Promise((r) => setTimeout(r, 5)); // garante que sessionsValidAfter fique depois de oldIssuedAt
+    expect((await resetPassword(undefined, form({ token, password: "novasenha1", confirm: "novasenha1" }))).ok).toBe(true);
+
+    // mesma sessão (token antigo, mesmo issuedAt): tratada como não logada
+    loginAs(u.id, oldIssuedAt);
+    await expect(createQuote(quoteInput() as never)).rejects.toThrow("UNAUTHORIZED");
+
+    // login novo (issuedAt depois da redefinição): funciona
+    loginAs(u.id, Date.now());
+    expect((await createQuote(quoteInput() as never)).ok).toBe(true);
   });
 });

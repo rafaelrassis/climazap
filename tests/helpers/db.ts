@@ -6,14 +6,18 @@ export async function resetDb() {
     'TRUNCATE "RateLimit", "PasswordResetToken", "QuotePhoto", "QuoteNudge", "PushSubscription", "QuoteItem", "Quote", "Customer", "Service", "User" RESTART IDENTITY CASCADE',
   );
   session.userId = "";
+  session.issuedAt = Date.now();
 }
 
 export async function makeUser(email = `u${Math.random().toString(36).slice(2)}@t.com`) {
   return db.user.create({ data: { name: "Técnico", email, passwordHash: "x" } });
 }
 
-export const loginAs = (userId: string) => {
+// issuedAt simula quando o token da sessão foi emitido (default: agora). Passe um valor anterior
+// a uma troca de sessionsValidAfter para simular uma sessão antiga que deveria ser revogada.
+export const loginAs = (userId: string, issuedAt: number = Date.now()) => {
   session.userId = userId;
+  session.issuedAt = issuedAt;
 };
 
 export async function makeSystemService(name = "Instalação", priceCents = 45000) {

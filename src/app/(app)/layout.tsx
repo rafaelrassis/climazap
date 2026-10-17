@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getUserId } from "@/lib/session";
 import { BottomNav } from "@/components/bottom-nav";
 import { LogoutButton } from "@/components/logout-button";
 import { SidebarNav } from "@/components/sidebar-nav";
@@ -8,6 +9,11 @@ import { SidebarNav } from "@/components/sidebar-nav";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  // mesma checagem de sessionsValidAfter do requireUserId: sessão antiga depois de redefinir a senha
+  // ou "Sair de todos os aparelhos" não deve renderizar a página, mesmo com o cookie ainda válido.
+  // Redireciona para uma rota que limpa o cookie (signOut de verdade): só um redirect("/login") não
+  // basta, porque o middleware (sem banco) ainda veria esse cookie como logado e mandaria de volta.
+  if (!(await getUserId())) redirect("/api/auth/sessao-revogada");
 
   return (
     <div className="min-h-dvh bg-background lg:flex">

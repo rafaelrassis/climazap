@@ -156,7 +156,8 @@ export async function resetPassword(
     });
     if (used.count === 0) return false;
     const row = await tx.passwordResetToken.findUniqueOrThrow({ where: { tokenHash }, select: { userId: true } });
-    await tx.user.update({ where: { id: row.userId }, data: { passwordHash } });
+    // invalida sessões emitidas antes da troca: quem redefiniu a senha derruba quem a tinha
+    await tx.user.update({ where: { id: row.userId }, data: { passwordHash, sessionsValidAfter: new Date() } });
     await tx.passwordResetToken.deleteMany({ where: { userId: row.userId, usedAt: null } });
     return true;
   });
