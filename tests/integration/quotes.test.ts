@@ -4,6 +4,7 @@ import {
   approveQuoteByPublicId,
   createQuote,
   duplicateQuote,
+  markQuoteViewed,
   rejectQuoteByPublicId,
   renewQuote,
   completeMaintenanceReminder,
@@ -134,6 +135,64 @@ describe("aprovação e recusa públicas", () => {
 
   it("rejeita publicId malformado", async () => {
     expect((await approveQuoteByPublicId("não-é-uuid")).ok).toBe(false);
+  });
+});
+
+describe("markQuoteViewed (beacon da página pública)", () => {
+  it("marca só SENT, só na 1ª vez", async () => {
+    const u = await makeUser();
+    loginAs(u.id);
+    const q = await newQuote();
+    await markQuoteViewed(q.publicId); // DRAFT: não marca
+    expect((await db.quote.findUniqueOrThrow({ where: { id: q.id } })).viewedAt).toBeNull();
+
+    await send(q.id);
+    loginAs(""); // beacon é público, sem sessão
+    await markQuoteViewed(q.publicId);
+    const first = await db.quote.findUniqueOrThrow({ where: { id: q.id } });
+    expect(first.viewedAt).not.toBeNull();
+
+    await markQuoteViewed(q.publicId); // 2ª abertura: não atualiza
+    const second = await db.quote.findUniqueOrThrow({ where: { id: q.id } });
+    expect(second.viewedAt).toEqual(first.viewedAt);
+  });
+
+  it("não marca depois de aprovado", async () => {
+    const u = await makeUser();
+    loginAs(u.id);
+    const q = await newQuote();
+    await send(q.id);
+    loginAs("");
+    await approveQuoteByPublicId(q.publicId);
+    await markQuoteViewed(q.publicId);
+    expect((await db.quote.findUniqueOrThrow({ where: { id: q.id } })).viewedAt).toBeNull();
+  });
+
+  it("publicId inválido falha", async () => {
+    expect((await markQuoteViewed("não-é-uuid")).ok).toBe(false);
+  });
+
+  it("dono logado testando o próprio link não marca", async () => {
+    const u = await makeUser();
+    loginAs(u.id);
+    const q = await newQuote();
+    await send(q.id);
+    await markQuoteViewed(q.publicId); // ainda logado como dono
+    expect((await db.quote.findUniqueOrThrow({ where: { id: q.id } })).viewedAt).toBeNull();
+  });
+
+  it("editar orçamento enviado zera o viewedAt", async () => {
+    const u = await makeUser();
+    loginAs(u.id);
+    const q = await newQuote();
+    await send(q.id);
+    loginAs("");
+    await markQuoteViewed(q.publicId);
+    expect((await db.quote.findUniqueOrThrow({ where: { id: q.id } })).viewedAt).not.toBeNull();
+
+    loginAs(u.id);
+    await updateQuote(q.id, quoteInput({ customerName: "Maria Editada" }) as never);
+    expect((await db.quote.findUniqueOrThrow({ where: { id: q.id } })).viewedAt).toBeNull();
   });
 });
 

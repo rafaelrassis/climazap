@@ -60,6 +60,9 @@ export function NudgeTemplateForm({ initial, sender }: { initial: string; sender
         <p className="text-xs text-muted-foreground">
           Variáveis: {NUDGE_PLACEHOLDERS.join(" ")}. Quando o orçamento vence em até 24h, usamos um aviso de urgência.
         </p>
+        <p className="text-xs text-muted-foreground">
+          Sem modelo próprio, usamos uma mensagem diferente para quem ainda não abriu o link.
+        </p>
       </div>
 
       {unknown.length > 0 && (

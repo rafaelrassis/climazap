@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/quotes/status-badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 const fmtDate = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
+const fmtDateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
 export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -48,6 +49,11 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           Criado em {fmtDate.format(q.createdAt)}
           {q.validUntil && ` · válido até ${fmtDate.format(q.validUntil)}`}
         </p>
+        {q.viewedAt ? (
+          <p className="text-xs text-muted-foreground">Visto em {fmtDateTime.format(q.viewedAt)}</p>
+        ) : (
+          q.status === "SENT" && <p className="text-xs text-muted-foreground">Ainda não visto</p>
+        )}
       </header>
 
       <Card>

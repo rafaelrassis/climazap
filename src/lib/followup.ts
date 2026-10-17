@@ -1,3 +1,4 @@
+import type { QuoteStatus } from "@prisma/client";
 import { formatBRL } from "@/lib/money";
 import { renderWaTemplate } from "@/lib/wa-template";
 
@@ -6,9 +7,18 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const NUDGE_PLACEHOLDERS = ["{cliente}", "{numero}", "{valor}", "{link}", "{tecnico}"] as const;
 export const DEFAULT_NUDGE_TEMPLATE =
   "Oi, {cliente}! Conseguiu ver o orçamento #{numero}? Qualquer dúvida é só falar.\n{link}";
+// Usada quando o orçamento nunca foi aberto, só quando o técnico não tem modelo próprio
+export const NOT_VIEWED_NUDGE_TEMPLATE =
+  "Oi, {cliente}! Mandei o orçamento #{numero} por aqui. Conseguiu abrir o link?\n{link}";
 // Usada quando o orçamento vence em até 24h, mesmo que o técnico tenha um modelo próprio
 export const URGENT_NUDGE_TEMPLATE =
   "Oi, {cliente}! O orçamento #{numero} vence em breve. Consegue me confirmar para eu garantir o valor e reservar sua data?\n{link}";
+
+// Selo curto para SENT: "visto" ou "não abriu o link". null fora de SENT (não se aplica).
+export function viewedLabel(viewedAt: Date | null, status: QuoteStatus): string | null {
+  if (status !== "SENT") return null;
+  return viewedAt ? "visto" : "não abriu o link";
+}
 
 // Quantos dias faltam para vencer (arredondado para cima): 0 = vencido, 1 = vence em até 24h
 export function daysUntilExpiry(validUntil: Date | null, now: Date): number | null {
@@ -32,12 +42,15 @@ export function canSnooze(validUntil: Date | null, now: Date): boolean {
 export type FollowUpContext = { template: string | null; tecnico: string; baseUrl: string };
 
 export function followUpMessage(
-  q: { customerName: string; number: number; totalCents: number; publicId: string; validUntil: Date | null },
+  q: { customerName: string; number: number; totalCents: number; publicId: string; validUntil: Date | null; viewedAt: Date | null },
   now: Date,
   ctx: FollowUpContext,
 ): string {
   const d = daysUntilExpiry(q.validUntil, now);
-  const template = d !== null && d <= 1 ? URGENT_NUDGE_TEMPLATE : (ctx.template ?? DEFAULT_NUDGE_TEMPLATE);
+  const template =
+    d !== null && d <= 1
+      ? URGENT_NUDGE_TEMPLATE
+      : (ctx.template ?? (q.viewedAt ? DEFAULT_NUDGE_TEMPLATE : NOT_VIEWED_NUDGE_TEMPLATE));
   return renderWaTemplate(template, {
     cliente: q.customerName,
     valor: formatBRL(q.totalCents),

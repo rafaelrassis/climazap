@@ -13,7 +13,7 @@ async function addSentQuote(
   userId: string,
   number: number,
   customerName: string,
-  data: { sentAt: Date; validUntil: Date },
+  data: { sentAt: Date; validUntil: Date; viewedAt?: Date },
 ) {
   const quote = await prisma.quote.create({
     data: {
@@ -25,6 +25,7 @@ async function addSentQuote(
       totalCents: 30000,
       sentAt: data.sentAt,
       validUntil: data.validUntil,
+      viewedAt: data.viewedAt ?? null,
       items: {
         create: [{ description: "Instalação de split", unit: "un", quantity: 1, unitPriceCents: 30000, totalCents: 30000 }],
       },
@@ -72,10 +73,12 @@ test("cobrar e adiar: painel, histórico, modelo editável e layout em 360px", a
   await stubWhatsApp(page);
 
   // A: enviado há 3 dias, vence em 5 dias. B: vence em 12h. C: parado, vence em 10 dias. D: parado (testa o modelo)
+  // A e D já visto pelo cliente: testam a mensagem padrão (sem a variante de "não abriu o link")
   const t = await seedTechnician("cob", "SENT", {
     customerName: "Ana Alfa",
     sentAt: new Date(Date.now() - 3 * DAY),
     validUntil: new Date(Date.now() + 5 * DAY),
+    viewedAt: new Date(Date.now() - 2 * DAY),
   });
   const a = { id: t.quoteId, publicId: t.publicId, name: "Ana Alfa" };
   const bQuote = await addSentQuote(t.userId, 2, "Beto Beta", {
@@ -89,6 +92,7 @@ test("cobrar e adiar: painel, histórico, modelo editável e layout em 360px", a
   const dQuote = await addSentQuote(t.userId, 4, "Dora Delta", {
     sentAt: new Date(Date.now() - 3 * DAY),
     validUntil: new Date(Date.now() + 10 * DAY),
+    viewedAt: new Date(Date.now() - 2 * DAY),
   });
 
   await login(page, t.email);

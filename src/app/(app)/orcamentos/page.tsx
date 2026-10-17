@@ -4,7 +4,7 @@ import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
-import { expiryLabel, followUpMessage, nudgedLabel } from "@/lib/followup";
+import { expiryLabel, followUpMessage, nudgedLabel, viewedLabel } from "@/lib/followup";
 import { getFollowUpContext } from "@/lib/followup-context";
 import { NudgeButton } from "@/components/quotes/nudge-button";
 import { StatusBadge } from "@/components/quotes/status-badge";
@@ -28,6 +28,7 @@ export default async function OrcamentosPage() {
       validUntil: true,
       publicId: true,
       lastNudgeAt: true,
+      viewedAt: true,
     },
   });
 
@@ -62,6 +63,9 @@ export default async function OrcamentosPage() {
                   )}
                   {q.status === "SENT" && nudgedLabel(q.lastNudgeAt, now) && (
                     <span className="text-xs font-semibold text-muted-foreground">{nudgedLabel(q.lastNudgeAt, now)}</span>
+                  )}
+                  {viewedLabel(q.viewedAt, q.status) && (
+                    <span className="text-xs font-semibold text-muted-foreground">{viewedLabel(q.viewedAt, q.status)}</span>
                   )}
                 </div>
               </div>

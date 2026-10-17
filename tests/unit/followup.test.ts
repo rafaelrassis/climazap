@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canSnooze, daysUntilExpiry, expiryLabel, followUpMessage, nudgedLabel } from "@/lib/followup";
+import { canSnooze, daysUntilExpiry, expiryLabel, followUpMessage, nudgedLabel, viewedLabel } from "@/lib/followup";
 import { nudgeTemplateSchema } from "@/lib/validations/auth";
 
 const HOUR = 60 * 60 * 1000;
@@ -24,7 +24,7 @@ describe("followup", () => {
   });
 
   it("mensagem: padrão, modelo do técnico e urgência (que ignora o modelo)", () => {
-    const base = { customerName: "Maria", number: 7, totalCents: 45000, publicId: "abc-123" };
+    const base = { customerName: "Maria", number: 7, totalCents: 45000, publicId: "abc-123", viewedAt: now };
     const ctx = { template: null, tecnico: "Zé Frio", baseUrl: "https://fechouclima.com.br/" };
     const normal = followUpMessage({ ...base, validUntil: at(3 * DAY) }, now, ctx);
     expect(normal).toContain("Conseguiu ver o orçamento #7");
@@ -37,6 +37,30 @@ describe("followup", () => {
     const urgent = followUpMessage({ ...base, validUntil: at(HOUR) }, now, custom);
     expect(urgent).toContain("vence em breve");
     expect(urgent).toContain("/o/abc-123");
+  });
+
+  it("mensagem: variante por visto só vale sem modelo próprio; urgência vence tudo", () => {
+    const base = { customerName: "Maria", number: 7, totalCents: 45000, publicId: "abc-123", validUntil: at(3 * DAY) };
+    const ctx = { template: null, tecnico: "Zé Frio", baseUrl: "https://fechouclima.com.br/" };
+
+    // sem modelo próprio: não visto usa a variante; visto usa o padrão
+    expect(followUpMessage({ ...base, viewedAt: null }, now, ctx)).toContain("Conseguiu abrir o link?");
+    expect(followUpMessage({ ...base, viewedAt: now }, now, ctx)).toContain("Conseguiu ver o orçamento #7");
+
+    // modelo próprio vence a variante por visto, mesmo não visto
+    const custom = { ...ctx, template: "Oi {cliente}, olha o #{numero}: {link}" };
+    expect(followUpMessage({ ...base, viewedAt: null }, now, custom)).toContain("olha o #7");
+
+    // urgência vence o modelo próprio e a variante por visto
+    const urgent = followUpMessage({ ...base, viewedAt: null, validUntil: at(HOUR) }, now, custom);
+    expect(urgent).toContain("vence em breve");
+  });
+
+  it("viewedLabel: só em SENT, visto ou não abriu o link", () => {
+    expect(viewedLabel(null, "DRAFT")).toBeNull();
+    expect(viewedLabel(now, "APPROVED")).toBeNull();
+    expect(viewedLabel(null, "SENT")).toBe("não abriu o link");
+    expect(viewedLabel(now, "SENT")).toBe("visto");
   });
 
   it("modelo de cobrança: 10 a 400 caracteres", () => {

@@ -9,6 +9,7 @@ import { buildPixPayload } from "@/lib/pix";
 import { LegalLinks } from "@/components/legal/legal-links";
 import { RejectButton } from "@/components/quotes/reject-button";
 import { ApproveButton } from "@/components/quotes/approve-button";
+import { ViewBeacon } from "@/components/quotes/view-beacon";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -80,6 +81,7 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ pu
 
   return (
     <main className="mx-auto min-h-dvh max-w-lg space-y-4 px-4 py-6 pb-32">
+      <ViewBeacon publicId={publicId} />
       <header className="space-y-1">
         {q.user.logoUpdatedAt && (
           // eslint-disable-next-line @next/next/no-img-element

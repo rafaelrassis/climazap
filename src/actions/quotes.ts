@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { MAX_PHOTOS_PER_QUOTE, MAX_PHOTO_BYTES, detectPhotoType } from "@/lib/image";
 import { notifyQuoteResponse } from "@/lib/notify";
 import { LIMITS, getClientIp, rateLimit } from "@/lib/rate-limit";
-import { requireUserId } from "@/lib/session";
+import { getUserId, requireUserId } from "@/lib/session";
 import { calcLineCents, formatBRL } from "@/lib/money";
 import { SNOOZE_GUARD_MS } from "@/lib/followup";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
@@ -173,6 +173,7 @@ export async function updateQuote(
         validUntil,
         status: "DRAFT",
         sentAt: null,
+        viewedAt: null,
         respondedAt: null,
         rejectReason: null,
       },
@@ -254,6 +255,29 @@ export async function approveQuoteByPublicId(publicId: string): Promise<ActionRe
   revalidatePath(`/o/${publicId}`);
   revalidatePath("/orcamentos");
   await notifyQuoteResponse(publicId, "APPROVED");
+  return { ok: true, data: undefined };
+}
+
+// Pública (sem auth): beacon da página marca a 1ª abertura do link pelo cliente
+export async function markQuoteViewed(publicId: string): Promise<ActionResult> {
+  const rl = await rateLimit(`public:${await getClientIp()}`, LIMITS.publicAction.limit, LIMITS.publicAction.windowSec);
+  if (!rl.ok) return { ok: false, error: "Muitas tentativas. Tente novamente em alguns minutos." };
+  if (!/^[0-9a-f-]{36}$/i.test(publicId)) return { ok: false, error: "Link inválido" };
+
+  // técnico testando o próprio link não conta como "cliente abriu"
+  const ownerId = await getUserId();
+  const { count } = await db.quote.updateMany({
+    where: { publicId, status: "SENT", viewedAt: null, ...(ownerId ? { userId: { not: ownerId } } : {}) },
+    data: { viewedAt: new Date() },
+  });
+
+  if (count > 0) {
+    const q = await db.quote.findUnique({ where: { publicId }, select: { id: true } });
+    revalidatePath("/inicio");
+    revalidatePath("/orcamentos");
+    if (q) revalidatePath(`/orcamentos/${q.id}`);
+  }
+
   return { ok: true, data: undefined };
 }
 

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { escapeHtml, sendEmail } from "@/lib/email";
+import { viewedLabel } from "@/lib/followup";
 import { staleWhere } from "@/lib/followup-queries";
 import { getNudgeFunnel } from "@/lib/nudge-funnel";
 import { formatBRL } from "@/lib/money";
@@ -40,7 +41,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
           ],
         },
         orderBy: { createdAt: "asc" },
-        select: { status: true, customerName: true, number: true, totalCents: true, respondedAt: true },
+        select: { status: true, customerName: true, number: true, totalCents: true, respondedAt: true, viewedAt: true },
       },
     },
   });
@@ -54,7 +55,7 @@ export async function sendWeeklyDigest(now = new Date()): Promise<{ users: numbe
       .map((q) => `${q.customerName}${q.respondedAt ? ` (serviço de ${fmtMonth.format(q.respondedAt)})` : ""}`);
     const waiting = u.quotes
       .filter((q) => q.status === "SENT")
-      .map((q) => `#${q.number} · ${q.customerName} · ${formatBRL(q.totalCents)}`);
+      .map((q) => `#${q.number} · ${q.customerName} · ${formatBRL(q.totalCents)} · ${viewedLabel(q.viewedAt, q.status)}`);
 
     const sections = [
       section("Hora da manutenção", maintenance),

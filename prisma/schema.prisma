@@ -90,6 +90,7 @@ model Quote {
   totalCents      Int         @default(0)
   validUntil      DateTime?
   sentAt          DateTime?
+  viewedAt        DateTime?
   respondedAt     DateTime?
   rejectReason    String?
   paidAt          DateTime?
