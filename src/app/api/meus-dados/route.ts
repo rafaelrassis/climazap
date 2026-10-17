@@ -22,6 +22,8 @@ export async function GET() {
       termsAcceptedAt: true,
       createdAt: true,
       logoType: true,
+      referralCode: true,
+      _count: { select: { referrals: true } },
       nudges: { select: { kind: true, createdAt: true } },
       customers: { select: { name: true, phone: true, address: true, createdAt: true } },
       services: { select: { name: true, description: true, unit: true, priceCents: true, isActive: true, createdAt: true } },

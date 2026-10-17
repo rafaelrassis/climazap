@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
 import { DEFAULT_WA_TEMPLATE } from "@/lib/wa-template";
+import { ensureReferralCode } from "@/actions/settings";
 import { AccountSection } from "@/components/settings/account-section";
 import { LegalLinks } from "@/components/legal/legal-links";
 import { BrandColorForm } from "@/components/settings/brand-color-form";
@@ -9,6 +10,7 @@ import { PixForm } from "@/components/settings/pix-form";
 import { PushToggle } from "@/components/settings/push-toggle";
 import { LogoForm } from "@/components/settings/logo-form";
 import { EmailDigestToggle } from "@/components/settings/email-digest-toggle";
+import { ReferralCard } from "@/components/settings/referral-card";
 import { WaTemplateForm } from "@/components/settings/wa-template-form";
 import { NudgeTemplateForm } from "@/components/settings/nudge-template-form";
 import { DEFAULT_NUDGE_TEMPLATE } from "@/lib/followup";
@@ -17,10 +19,15 @@ export const metadata = { title: "Ajustes" };
 
 export default async function AjustesPage() {
   const userId = await requireUserId();
-  const user = await db.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: { name: true, companyName: true, waTemplate: true, nudgeTemplate: true, emailDigest: true, logoUpdatedAt: true, pixKey: true, pixKeyType: true, pixCity: true, brandColor: true },
-  });
+  const [user, referralCode, referralCount] = await Promise.all([
+    db.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { name: true, companyName: true, waTemplate: true, nudgeTemplate: true, emailDigest: true, logoUpdatedAt: true, pixKey: true, pixKeyType: true, pixCity: true, brandColor: true },
+    }),
+    ensureReferralCode(),
+    db.user.count({ where: { referredById: userId } }),
+  ]);
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 
   return (
     <div className="space-y-4">
@@ -32,6 +39,7 @@ export default async function AjustesPage() {
       <EmailDigestToggle initial={user.emailDigest} />
       <WaTemplateForm initial={user.waTemplate ?? DEFAULT_WA_TEMPLATE} sender={user.companyName ?? user.name} />
       <NudgeTemplateForm initial={user.nudgeTemplate ?? DEFAULT_NUDGE_TEMPLATE} sender={user.companyName ?? user.name} />
+      {referralCode.ok && <ReferralCard link={`${baseUrl}/cadastro?ref=${referralCode.data.code}`} count={referralCount} />}
       <AccountSection />
       <LegalLinks />
     </div>

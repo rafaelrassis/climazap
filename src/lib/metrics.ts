@@ -168,3 +168,34 @@ export function nudgeEffect(quotes: NudgeEffectQuoteRow[], nudges: NudgeEffectNu
     naoCobrado: group(stale.filter((q) => !nudgedQuoteIds.has(q.id))),
   };
 }
+
+export type ReferralUserRow = { id: string; createdAt: Date; referredById: string | null };
+export type ReferralsByReferrer = { referrerId: string; indicados: number };
+export type Referrals = { porTecnico: ReferralsByReferrer[]; totalIndicados: number; ativacaoPct: number };
+
+// Indicados por técnico (só contagens, sem nome/e-mail) e % dos indicados que ativaram
+// (>=1 orçamento enviado nos 7 dias seguintes ao próprio cadastro).
+export function referrals(users: ReferralUserRow[], quotes: CohortQuoteRow[]): Referrals {
+  const sentByUser = new Map<string, Date[]>();
+  for (const q of quotes) {
+    if (!q.sentAt) continue;
+    const list = sentByUser.get(q.userId);
+    if (list) list.push(q.sentAt);
+    else sentByUser.set(q.userId, [q.sentAt]);
+  }
+
+  const referred = users.filter((u): u is ReferralUserRow & { referredById: string } => u.referredById !== null);
+
+  const byReferrer = new Map<string, number>();
+  for (const u of referred) byReferrer.set(u.referredById, (byReferrer.get(u.referredById) ?? 0) + 1);
+  const porTecnico = Array.from(byReferrer, ([referrerId, indicados]) => ({ referrerId, indicados })).sort(
+    (a, b) => b.indicados - a.indicados,
+  );
+
+  const ativados = referred.filter((u) => {
+    const t0 = u.createdAt.getTime();
+    return (sentByUser.get(u.id) ?? []).some((d) => d.getTime() >= t0 && d.getTime() < t0 + 7 * DAY_MS);
+  }).length;
+
+  return { porTecnico, totalIndicados: referred.length, ativacaoPct: pct(ativados, referred.length) };
+}

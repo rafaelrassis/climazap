@@ -9,7 +9,7 @@ import { LIMITS, getClientIp, rateLimit, rateLimitInfo } from "@/lib/rate-limit"
 import { requireUserId } from "@/lib/session";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { createResetToken, hashToken, resetUrl } from "@/lib/password-reset";
-import { forgotPasswordSchema, registerSchema, resetPasswordSchema } from "@/lib/validations/auth";
+import { forgotPasswordSchema, referralCodeSchema, registerSchema, resetPasswordSchema } from "@/lib/validations/auth";
 
 // `values` devolve o que foi digitado: no React 19 o formulário é limpo depois da ação
 export type RegisterState = {
@@ -74,9 +74,21 @@ export async function registerAction(
   }
   const { name, email, password } = parsed.data;
 
+  // código inexistente/inválido é ignorado em silêncio: não bloqueia o cadastro, não revela se existe
+  const refParsed = referralCodeSchema.safeParse(formData.get("ref"));
+  const referredBy = refParsed.success
+    ? await db.user.findUnique({ where: { referralCode: refParsed.data }, select: { id: true } })
+    : null;
+
   try {
     await db.user.create({
-      data: { name, email, passwordHash: await bcrypt.hash(password, 10), termsAcceptedAt: new Date() },
+      data: {
+        name,
+        email,
+        passwordHash: await bcrypt.hash(password, 10),
+        termsAcceptedAt: new Date(),
+        referredById: referredBy?.id,
+      },
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {

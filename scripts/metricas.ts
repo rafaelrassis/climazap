@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { funnel, nudgeEffect, weeklyCohorts } from "@/lib/metrics";
+import { funnel, nudgeEffect, referrals, weeklyCohorts } from "@/lib/metrics";
 
 const DEFAULT_EXCLUDE = "@fechouclima\\.com\\.br$|^demo@";
 
@@ -23,9 +23,11 @@ async function main() {
 
   const db = new PrismaClient();
   try {
-    const allUsers = await db.user.findMany({ select: { id: true, email: true, createdAt: true } });
+    const allUsers = await db.user.findMany({ select: { id: true, email: true, createdAt: true, referredById: true } });
     const keepIds = new Set(allUsers.filter((u) => !exclude.test(u.email)).map((u) => u.id));
-    const userRows = allUsers.filter((u) => keepIds.has(u.id)).map((u) => ({ id: u.id, createdAt: u.createdAt }));
+    const kept = allUsers.filter((u) => keepIds.has(u.id));
+    const userRows = kept.map((u) => ({ id: u.id, createdAt: u.createdAt }));
+    const referralRows = kept.map((u) => ({ id: u.id, createdAt: u.createdAt, referredById: u.referredById && keepIds.has(u.referredById) ? u.referredById : null }));
 
     const quotes = await db.quote.findMany({
       where: { userId: { in: [...keepIds] } },
@@ -50,6 +52,10 @@ async function main() {
       cobrado: { n: effect.cobrado.n, aprovadoPct: effect.cobrado.aprovadoPct ?? "amostra pequena" },
       naoCobrado: { n: effect.naoCobrado.n, aprovadoPct: effect.naoCobrado.aprovadoPct ?? "amostra pequena" },
     });
+
+    const ref = referrals(referralRows, quotes);
+    console.log(`\nIndicações — ${ref.totalIndicados} cadastros vieram de indicação, ${ref.ativacaoPct}% ativaram`);
+    if (ref.porTecnico.length) console.table(ref.porTecnico);
   } finally {
     await db.$disconnect();
   }

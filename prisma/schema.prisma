@@ -41,6 +41,8 @@ model User {
   logoType           String?
   logoUpdatedAt      DateTime?
   quoteSeq           Int       @default(0)
+  referralCode       String?   @unique
+  referredById       String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -50,6 +52,10 @@ model User {
   pushSubscriptions   PushSubscription[]
   passwordResetTokens PasswordResetToken[]
   nudges              QuoteNudge[]
+  referredBy          User?                @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals           User[]               @relation("Referrals")
+
+  @@index([referredById])
 }
 
 // userId null = serviço padrão do sistema (seed); preenchido = catálogo do usuário

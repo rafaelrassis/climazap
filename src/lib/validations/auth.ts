@@ -29,3 +29,10 @@ export const resetPasswordSchema = z.object({
   token: z.string().regex(/^[0-9a-f]{64}$/, "Link inválido"),
   password: z.string().min(6, "Mínimo de 6 caracteres").max(72, "Máximo de 72 caracteres"),
 });
+
+// Código de indicação: 6 caracteres de ABCDEFGHJKMNPQRSTUVWXYZ23456789 (sem I/L/O/0/1)
+export const referralCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z2-9]{6}$/);

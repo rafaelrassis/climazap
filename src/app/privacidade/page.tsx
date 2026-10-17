@@ -27,6 +27,7 @@ export default function PrivacidadePage() {
         <h2 className="text-base font-semibold">2. Dados que tratamos</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li>Do técnico: nome, e-mail, senha (guardada apenas em forma de hash), logo e nome da empresa, preferências e data do aceite dos termos.</li>
+          <li>Indicação entre técnicos: se você se cadastrar pelo link de indicação de outro técnico, guardamos esse vínculo (sem recompensa hoje), só para sabermos se o boca a boca funciona.</li>
           <li>Dos clientes do técnico: nome, telefone, endereço (opcional), serviços orçados, valores e resposta ao orçamento (aprovação ou recusa e o motivo, se informado).</li>
           <li>Técnicos: assinatura de notificações do navegador, se você ativar os avisos.</li>
           <li>Registros técnicos de segurança, como o endereço IP, usados apenas para limitar tentativas abusivas de acesso.</li>

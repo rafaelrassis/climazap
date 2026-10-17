@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { funnel, nudgeEffect, weeklyCohorts } from "@/lib/metrics";
+import { funnel, nudgeEffect, referrals, weeklyCohorts } from "@/lib/metrics";
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -144,5 +144,41 @@ describe("nudgeEffect", () => {
     }));
     const result = nudgeEffect([...rapido, ...demorado], [], now);
     expect(result.naoCobrado).toEqual({ n: 10, aprovadoPct: 100 }); // só os "demorado" contam
+  });
+});
+
+describe("referrals", () => {
+  const createdAt = new Date("2026-10-05T03:00:00Z");
+
+  it("conta indicados por técnico e ignora quem não foi indicado", () => {
+    const users = [
+      { id: "a", createdAt, referredById: null }, // técnico A: indicou b e c
+      { id: "b", createdAt, referredById: "a" },
+      { id: "c", createdAt, referredById: "a" },
+      { id: "d", createdAt, referredById: "x" }, // indicado por alguém fora da lista (ex.: excluído dos testes)
+    ];
+    const result = referrals(users, []);
+    expect(result.totalIndicados).toBe(3); // b, c, d
+    expect(result.porTecnico).toEqual([{ referrerId: "a", indicados: 2 }, { referrerId: "x", indicados: 1 }]);
+  });
+
+  it("ativação: só conta quem enviou orçamento nos 7 dias seguintes ao próprio cadastro", () => {
+    const users = [
+      { id: "ativo", createdAt, referredById: "a" },
+      { id: "inativo", createdAt, referredById: "a" },
+      { id: "a", createdAt, referredById: null },
+    ];
+    const quotes = [
+      { userId: "ativo", sentAt: new Date(createdAt.getTime() + 2 * DAY) },
+      { userId: "inativo", sentAt: new Date(createdAt.getTime() + 10 * DAY) }, // fora da janela de 7 dias
+    ];
+    const result = referrals(users, quotes);
+    expect(result.totalIndicados).toBe(2);
+    expect(result.ativacaoPct).toBeCloseTo(50, 1);
+  });
+
+  it("sem indicados: 0 e 0%, sem lançar", () => {
+    const result = referrals([{ id: "a", createdAt, referredById: null }], []);
+    expect(result).toEqual({ porTecnico: [], totalIndicados: 0, ativacaoPct: 0 });
   });
 });

@@ -1,14 +1,37 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
 import { DEFAULT_BRAND, isBrandColor } from "@/lib/brand";
 import { MAX_LOGO_BYTES, detectLogoType } from "@/lib/logo";
+import { generateReferralCode } from "@/lib/referral";
 import { nudgeTemplateSchema, waTemplateSchema } from "@/lib/validations/auth";
 import { pixSchema } from "@/lib/validations/pix";
 import { pushSubscriptionSchema, type PushSubscriptionInput } from "@/lib/validations/push";
 import type { ActionResult } from "@/types/action";
+
+const REFERRAL_ATTEMPTS = 5;
+
+// Devolve o código de indicação do técnico, gerando na 1ª vez que é pedido (sem backfill).
+export async function ensureReferralCode(): Promise<ActionResult<{ code: string }>> {
+  const userId = await requireUserId();
+  const existing = await db.user.findUnique({ where: { id: userId }, select: { referralCode: true } });
+  if (existing?.referralCode) return { ok: true, data: { code: existing.referralCode } };
+
+  for (let attempt = 0; attempt < REFERRAL_ATTEMPTS; attempt++) {
+    const code = generateReferralCode();
+    try {
+      await db.user.update({ where: { id: userId }, data: { referralCode: code } });
+      return { ok: true, data: { code } };
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") continue;
+      throw e;
+    }
+  }
+  return { ok: false, error: "Não foi possível gerar seu código agora. Tente de novo." };
+}
 
 export async function saveWaTemplate(template: string): Promise<ActionResult> {
   const userId = await requireUserId();
