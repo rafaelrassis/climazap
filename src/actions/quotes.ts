@@ -8,6 +8,7 @@ import { notifyQuoteResponse } from "@/lib/notify";
 import { LIMITS, getClientIp, rateLimit } from "@/lib/rate-limit";
 import { requireUserId } from "@/lib/session";
 import { calcLineCents, formatBRL } from "@/lib/money";
+import { SNOOZE_GUARD_MS } from "@/lib/followup";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { DEFAULT_WA_TEMPLATE, renderWaTemplate } from "@/lib/wa-template";
 import { createQuoteSchema, type CreateQuoteInput } from "@/lib/validations/quote";
@@ -488,15 +489,15 @@ export async function snoozeQuoteFollowUp(quoteId: string): Promise<ActionResult
   const day = 24 * 60 * 60 * 1000;
   const done = await db.$transaction(async (tx) => {
     const { count } = await tx.quote.updateMany({
-      // não adia quem vence em até 24h: ele sumiria da lista e poderia expirar sem cobrança
-      where: { id: id.data, userId, status: "SENT", OR: [{ validUntil: null }, { validUntil: { gt: new Date(Date.now() + day) } }] },
+      // não adia quem vence em até 3 dias (a janela do adiamento): ele sumiria da lista e poderia expirar sem cobrança
+      where: { id: id.data, userId, status: "SENT", OR: [{ validUntil: null }, { validUntil: { gt: new Date(Date.now() + SNOOZE_GUARD_MS) } }] },
       data: { lastNudgeAt: new Date(Date.now() + day) },
     });
     if (count === 0) return false;
     await tx.quoteNudge.create({ data: { quoteId: id.data, userId, kind: "SNOOZE" } });
     return true;
   });
-  if (!done) return { ok: false, error: "Não dá para adiar: o orçamento vence em breve ou não está aguardando resposta" };
+  if (!done) return { ok: false, error: "Não dá para adiar: o orçamento vence em até 3 dias ou não está aguardando resposta" };
   revalidatePath("/inicio");
   revalidatePath("/orcamentos");
   return { ok: true, data: undefined };

@@ -69,6 +69,20 @@ describe("cobrança de orçamentos", () => {
     expect(await db.quoteNudge.count({ where: { quoteId: soon } })).toBe(0);
   });
 
+  it("adiar é bloqueado quando o orçamento vence dentro da janela de 3 dias", async () => {
+    const u = await makeUser();
+    loginAs(u.id);
+    const inTwoDays = await sentQuote(2 * DAY);
+    const inFourDays = await sentQuote(4 * DAY);
+
+    const blocked = await snoozeQuoteFollowUp(inTwoDays);
+    expect(blocked.ok).toBe(false);
+    expect((await db.quote.findUniqueOrThrow({ where: { id: inTwoDays } })).lastNudgeAt).toBeNull();
+    expect(await db.quoteNudge.count({ where: { quoteId: inTwoDays } })).toBe(0);
+
+    expect((await snoozeQuoteFollowUp(inFourDays)).ok).toBe(true);
+  });
+
   it("resumo semanal ignora cobrados/adiados e volta a listar depois de 48h", async () => {
     const u = await makeUser("t@t.com");
     loginAs(u.id);

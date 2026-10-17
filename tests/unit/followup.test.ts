@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysUntilExpiry, expiryLabel, followUpMessage, nudgedLabel } from "@/lib/followup";
+import { canSnooze, daysUntilExpiry, expiryLabel, followUpMessage, nudgedLabel } from "@/lib/followup";
 import { nudgeTemplateSchema } from "@/lib/validations/auth";
 
 const HOUR = 60 * 60 * 1000;
@@ -51,5 +51,16 @@ describe("followup", () => {
     expect(nudgedLabel(at(-3 * DAY), now)).toBe("cobrado há 3d");
     // adiado em 16/10: lastNudgeAt = 17/10 15:00Z, volta 48h depois = 19/10
     expect(nudgedLabel(at(DAY), now)).toBe("adiado até 19/10");
+  });
+
+  it("canSnooze: só quando a validade passa da janela de 3 dias (ou não existe)", () => {
+    const now = new Date("2026-10-17T12:00:00Z");
+    const at = (ms: number) => new Date(now.getTime() + ms);
+    const DAY = 86_400_000;
+    expect(canSnooze(null, now)).toBe(true);
+    expect(canSnooze(at(3 * DAY + 1000), now)).toBe(true);
+    expect(canSnooze(at(3 * DAY), now)).toBe(false);
+    expect(canSnooze(at(DAY), now)).toBe(false);
+    expect(canSnooze(at(-DAY), now)).toBe(false);
   });
 });

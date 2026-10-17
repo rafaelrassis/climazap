@@ -23,6 +23,12 @@ export function expiryLabel(validUntil: Date | null, now: Date): string | null {
   return d === 0 ? "vence hoje" : "vence em até 24h";
 }
 
+// Adiar esconde o orçamento até hoje + 3 dias: só vale se ele ainda estiver válido depois disso
+export const SNOOZE_GUARD_MS = 3 * DAY_MS;
+export function canSnooze(validUntil: Date | null, now: Date): boolean {
+  return !validUntil || validUntil.getTime() > now.getTime() + SNOOZE_GUARD_MS;
+}
+
 export type FollowUpContext = { template: string | null; tecnico: string; baseUrl: string };
 
 export function followUpMessage(

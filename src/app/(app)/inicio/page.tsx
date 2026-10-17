@@ -7,7 +7,7 @@ import { expireStaleQuotes } from "@/lib/quote-expiry";
 import { requireUserId } from "@/lib/session";
 import { formatBRL } from "@/lib/money";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
-import { expiryLabel, followUpMessage } from "@/lib/followup";
+import { canSnooze, expiryLabel, followUpMessage } from "@/lib/followup";
 import { followUpWhere } from "@/lib/followup-queries";
 import { getFollowUpContext } from "@/lib/followup-context";
 import { getNudgeFunnel } from "@/lib/nudge-funnel";
@@ -247,7 +247,7 @@ export default async function InicioPage() {
                     </Link>
                     <NudgeButton quoteId={q.id} href={buildWhatsAppUrl(q.customerPhone, followUpMessage(q, now, followUpCtx))} nudged={!!q.lastNudgeAt} />
                     </div>
-                    {!expiryLabel(q.validUntil, now) && (
+                    {canSnooze(q.validUntil, now) && (
                       <div className="flex justify-end">
                         <SnoozeButton quoteId={q.id} />
                       </div>
